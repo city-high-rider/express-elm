@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/city-high-rider/express-elm/issues"
   },
-  "homepage": "https://github.com/city-high-rider/express-elm#readme"
+  "homepage": "https://github.com/city-high-rider/express-elm#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
