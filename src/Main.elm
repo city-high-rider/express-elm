@@ -1,4 +1,4 @@
-module HelloWorld exposing (..)
+module Main exposing (..)
 
 import Html exposing (text)
 
