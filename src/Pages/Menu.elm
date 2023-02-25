@@ -1,8 +1,10 @@
 module Pages.Menu exposing (..)
 
-import Category exposing (CategoryId)
+import Category exposing (Category, CategoryId, catsDecoder)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
+import Html.Attributes exposing (type_)
+import Html.Events exposing (onCheck)
 import Http
 import Products exposing (Product, productsDecoder)
 import RemoteData exposing (WebData)
@@ -13,24 +15,37 @@ import RemoteData exposing (WebData)
 
 
 type alias Model =
-    { products : WebData (List Product)
+    { categories : WebData (List Category)
+    , sections : List Section
+    }
+
+
+type alias Section =
+    { category : Category
+    , products : WebData (List Product)
     }
 
 
 init : CategoryId -> ( Model, Cmd Msg )
-init startingCategory =
-    ( Model RemoteData.Loading
-    , getProducts startingCategory
+init _ =
+    ( Model RemoteData.Loading []
+    , getCategories
     )
 
 
 
 -- view function
 
-
 view : Model -> Html Msg
 view model =
-    case model.products of
+    div []
+    [ viewChecks model
+    , viewSections model.sections
+    ]
+
+viewChecks : Model -> Html Msg
+viewChecks model =
+    case model.categories of
         RemoteData.NotAsked ->
             div [] [ h2 [] [ text "You haven't asked for the data!" ] ]
 
@@ -43,13 +58,56 @@ view model =
                 , viewHttpError err
                 ]
 
-        RemoteData.Success prods ->
-            viewProds prods
+        RemoteData.Success cats ->
+            div []
+                [ makeCheckmarks cats
+                ]
 
 
-viewProds : List Product -> Html Msg
+viewSections : List Section -> Html Msg
+viewSections sections =
+    div [] (List.map viewSection sections) 
+
+
+viewSection : Section -> Html Msg
+viewSection section =
+    div []
+    [ h2 [] [text section.category.name]
+    , viewProds section.products
+    ]
+
+
+makeCheckmarks : List Category -> Html Msg
+makeCheckmarks cats =
+    div []
+        (List.map makeCheckmark cats)
+
+
+makeCheckmark : Category -> Html Msg
+makeCheckmark cat =
+    div []
+        [ span [] [ text cat.name ]
+        , input [ type_ "checkbox", onCheck (CheckedCat cat) ] []
+        ]
+
+
+viewProds : WebData (List Product) -> Html Msg
 viewProds prods =
-    div [] (List.map viewProd prods)
+    case prods of
+        RemoteData.NotAsked ->
+            p [] [ text "haven't asked" ]
+
+        RemoteData.Loading ->
+            p [] [ text "Getting your items... please wait" ]
+
+        RemoteData.Failure err ->
+            div []
+                [ h2 [] [ text "unable to get your item!" ]
+                , viewHttpError err
+                ]
+
+        RemoteData.Success goodProds ->
+            div [] (List.map viewProd goodProds)
 
 
 viewProd : Product -> Html Msg
@@ -74,16 +132,68 @@ getProducts : CategoryId -> Cmd Msg
 getProducts catId =
     Http.get
         { url = "http://localhost:3000/menu/" ++ (String.fromInt <| Category.catIdToInt catId)
-        , expect = Http.expectJson (RemoteData.fromResult >> GotProducts) productsDecoder
+        , expect = Http.expectJson (RemoteData.fromResult >> GotProducts catId) productsDecoder
         }
 
 
 type Msg
-    = GotProducts (WebData (List Product))
+    = GotProducts CategoryId (WebData (List Product))
+    | GotCats (WebData (List Category))
+    | CheckedCat Category Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotProducts prods ->
-            ( { model | products = prods }, Cmd.none )
+        GotProducts forCat prods ->
+            ( { model | sections = insertProducts prods forCat model.sections }, Cmd.none )
+
+        GotCats cats ->
+            ( { model | categories = cats }, Cmd.none )
+
+        CheckedCat cat on ->
+            let
+                newSections =
+                    if on then
+                        Section cat RemoteData.Loading :: model.sections
+
+                    else
+                        List.filter (\s -> s.category /= cat) model.sections
+            in
+            ( { model
+                | sections = newSections
+              }
+            , updateSections newSections
+            )
+
+
+insertProducts : WebData (List Product) -> CategoryId -> List Section -> List Section
+insertProducts newProducts id oldSections =
+    List.map
+        (\s ->
+            if s.category.id == id then
+                { s | products = newProducts }
+
+            else
+                s
+        )
+        oldSections
+
+
+updateSections : List Section -> Cmd Msg
+updateSections sections =
+    List.map updateSection sections
+        |> Cmd.batch
+
+
+updateSection : Section -> Cmd Msg
+updateSection section =
+    getProducts section.category.id
+
+
+getCategories : Cmd Msg
+getCategories =
+    Http.get
+        { url = "http://localhost:3000/categories"
+        , expect = Http.expectJson (RemoteData.fromResult >> GotCats) catsDecoder
+        }
