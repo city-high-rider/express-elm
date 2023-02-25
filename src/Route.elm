@@ -1,11 +1,12 @@
 module Route exposing (..)
 import Url exposing (Url)
 import Url.Parser exposing (..)
+import Pages.Menu exposing (CategoryId, menuRouteParser)
 
 type Route
     = NotFound
     | Home
-    | Menu
+    | MenuRoute CategoryId
 
 
 parseUrl : Url -> Route
@@ -18,5 +19,5 @@ routeParser : Parser (Route -> a) a
 routeParser =
     oneOf 
     [ map Home top
-    , map Menu (s "menu")
+    , map MenuRoute (s "menu" </> menuRouteParser)
     ]
