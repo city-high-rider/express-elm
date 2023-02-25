@@ -1,12 +1,10 @@
 module Pages.CategoryList exposing (..)
 
-import Category exposing (catIdDecoder, catIdToInt, Category)
+import Category exposing (catsDecoder, catIdToInt, Category)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (Html, a, div, h2, h3, p, text)
 import Html.Attributes exposing (href)
 import Http
-import Json.Decode exposing (Decoder, list, string)
-import Json.Decode.Pipeline exposing (required)
 import RemoteData exposing (WebData)
 
 
@@ -87,13 +85,3 @@ getCategories =
         }
 
 
-catsDecoder : Decoder (List Category)
-catsDecoder =
-    list catDecoder
-
-
-catDecoder : Decoder Category
-catDecoder =
-    Json.Decode.succeed Category
-        |> required "id" catIdDecoder
-        |> required "name" string
