@@ -1,12 +1,12 @@
 module Pages.Menu exposing (..)
 
+import Category exposing (CategoryId, catIdDecoder)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
 import Http
 import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
 import RemoteData exposing (WebData)
-import Url.Parser exposing (Parser, custom)
 
 
 
@@ -82,9 +82,9 @@ viewProd product =
 
 
 getProducts : CategoryId -> Cmd Msg
-getProducts (CategoryId id) =
+getProducts catId =
     Http.get
-        { url = "http://localhost:3000/menu/" ++ String.fromInt id
+        { url = "http://localhost:3000/menu/" ++ (String.fromInt <| Category.catIdToInt catId)
         , expect = Http.expectJson (RemoteData.fromResult >> GotProducts) productsDecoder
         }
 
@@ -100,23 +100,8 @@ update msg model =
             ( { model | products = prods }, Cmd.none )
 
 
-type CategoryId
-    = CategoryId Int
-
-
-catIdToInt : CategoryId -> Int
-catIdToInt (CategoryId id) =
-    id
-
-
 
 -- decoders
-
-
-menuRouteParser : Parser (CategoryId -> a) a
-menuRouteParser =
-    custom "CATEGORYID" <|
-        \catId -> Maybe.map CategoryId (String.toInt catId)
 
 
 productsDecoder : Decoder (List Product)
@@ -133,8 +118,3 @@ productDecoder =
         |> required "size" int
         |> required "price_cents" int
         |> required "category" catIdDecoder
-
-
-catIdDecoder : Decoder CategoryId
-catIdDecoder =
-    Json.Decode.map CategoryId int

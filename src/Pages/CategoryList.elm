@@ -1,12 +1,12 @@
 module Pages.CategoryList exposing (..)
 
+import Category exposing (CategoryId, catIdDecoder, catIdToInt)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (Html, a, div, h2, h3, p, text)
 import Html.Attributes exposing (href)
 import Http
 import Json.Decode exposing (Decoder, list, string)
 import Json.Decode.Pipeline exposing (required)
-import Pages.Menu exposing (CategoryId, catIdDecoder, catIdToInt)
 import RemoteData exposing (WebData)
 
 
@@ -52,7 +52,7 @@ view model =
 showCategories : List Category -> Html Msg
 showCategories cats =
     div []
-        ( List.map showCategory cats )
+        (List.map showCategory cats)
 
 
 showCategory : Category -> Html Msg
