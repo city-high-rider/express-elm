@@ -7,6 +7,7 @@ type Route
     = NotFound
     | Home
     | MenuRoute CategoryId
+    | MenuList
 
 
 parseUrl : Url -> Route
@@ -19,5 +20,6 @@ routeParser : Parser (Route -> a) a
 routeParser =
     oneOf 
     [ map Home top
+    , map MenuList (s "menu")
     , map MenuRoute (s "menu" </> menuRouteParser)
     ]
