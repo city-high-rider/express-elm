@@ -1,85 +1,111 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Html exposing (text, div, h3, p, Html)
-import Browser exposing (element)
-import Http
+import Browser exposing (Document, UrlRequest)
+import Browser.Navigation as Nav
+import Html exposing (Html, div, h2, p, text)
+import Pages.Home as HomePageFile
+import Route exposing (Route(..))
+import Url exposing (Url)
 
+
+main : Program () Model Msg
 main =
-    element 
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = \_ -> Sub.none
+    Browser.application
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = \_ -> Sub.none
+        , onUrlRequest = LinkClicked
+        , onUrlChange = UrlChanged
+        }
+
+
+type alias Model =
+    { route : Route
+    , page : Page
+    , navKey : Nav.Key
     }
 
-type Model
-    = NotAsked
-    | Loading
-    | Failure Http.Error
-    | Success String
+
+type Page
+    = NotFoundPage
+    | HomePage
 
 
-init : () -> (Model, Cmd Msg)
-init _ =
-    (NotAsked, getData)
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url navKey =
+    let
+        model =
+            { route = Route.parseUrl url
+            , page = NotFoundPage
+            , navKey = navKey
+            }
+    in
+    initCurrentPage ( model, Cmd.none )
 
 
-view : Model -> Html Msg
+initCurrentPage : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+initCurrentPage ( model, initialCmds ) =
+    let
+        ( currentPage, mappedCmds ) =
+            case model.route of
+                NotFound ->
+                    ( NotFoundPage, Cmd.none )
+
+                Home ->
+                    ( HomePage, Cmd.none )
+
+                Menu ->
+                    ( NotFoundPage, Cmd.none )
+    in
+    ( { model | page = currentPage }
+    , Cmd.batch [ initialCmds, mappedCmds ]
+    )
+
+
+view : Model -> Document Msg
 view model =
-    case model of
-        NotAsked ->
-            p [] [text "You haven't asked for data yet."]
-        
-        Loading ->
-            p [] [text "loading.. please wait"]
-
-        Failure err ->
-            div []
-            [ h3 [] [text "something went wrong"]
-            , p [] [text <| httpErrorToString err]
-            ]
-
-        Success data ->
-            div []
-            [ h3 [] [text "data retreived successfully"]
-            , p [] [text data]
-            ]
-
-
-httpErrorToString : Http.Error -> String
-httpErrorToString err =
-    case err of
-        Http.BadUrl s ->
-            s
-        Http.Timeout ->
-            "connection timed out"
-
-        Http.NetworkError ->
-            "Network error"
-
-        Http.BadBody s ->
-            s
-
-        Http.BadStatus status ->
-            String.fromInt status
-
-
-type Msg =
-    GotData (Result Http.Error String)
-
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg _ =
-    case msg of
-        GotData ( Err e ) ->
-            (Failure e, Cmd.none)
-        GotData (Ok t ) ->
-            (Success t, Cmd.none)
-
-
-getData : Cmd Msg
-getData =
-    Http.get
-    { url = "http://localhost:3000"
-    , expect = Http.expectString GotData
+    { title = "Elm app" 
+    , body = [currentView model]
     }
+
+currentView : Model -> Html Msg
+currentView model =
+    case model.page of
+        NotFoundPage ->
+            notFoundView
+
+        HomePage ->
+            HomePageFile.view
+
+
+notFoundView : Html Msg
+notFoundView =
+    div []
+        [ h2 [] [ text "the page you requested was not found." ]
+        ]
+
+
+type Msg
+    = LinkClicked UrlRequest
+    | UrlChanged Url
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case ( msg, model.page ) of
+        ( LinkClicked urlRequest, _ ) ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.navKey (Url.toString url) )
+
+                Browser.External url ->
+                    ( model, Nav.load url )
+
+        ( UrlChanged url, _ ) ->
+            let
+                newRoute =
+                    Route.parseUrl url
+            in
+            ( { model | route = newRoute }, Cmd.none ) |> initCurrentPage
+
