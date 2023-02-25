@@ -57,7 +57,9 @@ showCategory cat =
         idNumber =
             (String.fromInt << catIdToInt) cat.id
     in
-    a [ href ("menu/" ++ idNumber) ] [ text cat.name ]
+    div []
+    [a [ href ("menu/" ++ idNumber) ] [ text cat.name ]
+    ]
 
 
 
