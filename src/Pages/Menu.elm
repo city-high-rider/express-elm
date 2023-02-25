@@ -1,5 +1,6 @@
 module Pages.Menu exposing (..)
 
+import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
 import Http
 import Json.Decode exposing (Decoder, int, list, string)
@@ -30,75 +31,60 @@ type alias Product =
 init : CategoryId -> ( Model, Cmd Msg )
 init startingCategory =
     ( Model RemoteData.Loading
-    , getCategory startingCategory
+    , getProducts startingCategory
     )
 
 
 
 -- view function
 
+
 view : Model -> Html Msg
 view model =
-    case model.products of 
+    case model.products of
         RemoteData.NotAsked ->
-            div [] [h2 [] [text "You haven't asked for the data!"]]
+            div [] [ h2 [] [ text "You haven't asked for the data!" ] ]
 
         RemoteData.Loading ->
-            h2 [] [text "Loading.. please wait"]
+            h2 [] [ text "Loading.. please wait" ]
 
         RemoteData.Failure err ->
             div []
-            [ h2 [] [text "someting went wrong"]
-            , viewError err
-            ]
+                [ h2 [] [ text "someting went wrong" ]
+                , viewHttpError err
+                ]
 
         RemoteData.Success prods ->
             viewProds prods
 
 
-viewError : Http.Error -> Html Msg
-viewError err =
-    case err of 
-        Http.BadUrl s ->
-            p [] [text s]
-
-        Http.Timeout ->
-            p [] [text "time out"]
-
-        Http.NetworkError ->
-            p [] [text "network error"]
-
-        Http.BadStatus s ->
-            p [] [text (String.fromInt s)]
-
-        Http.BadBody s ->
-            p [] [text s]
-
-
 viewProds : List Product -> Html Msg
-viewProds prods = 
+viewProds prods =
     div [] (List.map viewProd prods)
 
 
 viewProd : Product -> Html Msg
 viewProd product =
     let
-        productCost = String.fromFloat <| ( toFloat product.price / 100)
+        productCost =
+            String.fromFloat <| (toFloat product.price / 100)
     in
     div []
-    [ h3 [] [text product.name]
-    , p [] [text ("Description: " ++ product.description)]
-    , p [] [text ("Cost : " ++ productCost)]
-    , p [] [text (String.fromInt product.size ++ " mL")]
-    ]
+        [ h3 [] [ text product.name ]
+        , p [] [ text ("Description: " ++ product.description) ]
+        , p [] [ text ("Cost : " ++ productCost) ]
+        , p [] [ text (String.fromInt product.size ++ " mL") ]
+        ]
+
+
+
 -- update function
 
--- TODO : Change this request to send to a different url
--- and update the server to send out categories at that url
-getCategory : CategoryId -> Cmd Msg
-getCategory (CategoryId id) =
+
+getProducts : CategoryId -> Cmd Msg
+getProducts (CategoryId id) =
     Http.get
-        { url = "http://localhost:3000/queryDb"
+        { url = "http://localhost:3000/menu/" ++ String.fromInt id
         , expect = Http.expectJson (RemoteData.fromResult >> GotProducts) productsDecoder
         }
 
@@ -119,7 +105,10 @@ type CategoryId
 
 
 catIdToInt : CategoryId -> Int
-catIdToInt ( CategoryId id ) = id
+catIdToInt (CategoryId id) =
+    id
+
+
 
 -- decoders
 
