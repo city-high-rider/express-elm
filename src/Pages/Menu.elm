@@ -26,8 +26,8 @@ type alias Section =
     }
 
 
-init : CategoryId -> ( Model, Cmd Msg )
-init _ =
+init : ( Model, Cmd Msg )
+init =
     ( Model RemoteData.Loading []
     , getCategories
     )
