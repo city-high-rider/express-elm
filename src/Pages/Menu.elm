@@ -1,11 +1,10 @@
 module Pages.Menu exposing (..)
 
-import Category exposing (CategoryId, catIdDecoder)
+import Category exposing (CategoryId)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
 import Http
-import Json.Decode exposing (Decoder, int, list, string)
-import Json.Decode.Pipeline exposing (required)
+import Products exposing (Product, productsDecoder)
 import RemoteData exposing (WebData)
 
 
@@ -15,16 +14,6 @@ import RemoteData exposing (WebData)
 
 type alias Model =
     { products : WebData (List Product)
-    }
-
-
-type alias Product =
-    { id : Int
-    , name : String
-    , description : String
-    , size : Int
-    , price : Int
-    , category : CategoryId
     }
 
 
@@ -98,23 +87,3 @@ update msg model =
     case msg of
         GotProducts prods ->
             ( { model | products = prods }, Cmd.none )
-
-
-
--- decoders
-
-
-productsDecoder : Decoder (List Product)
-productsDecoder =
-    list productDecoder
-
-
-productDecoder : Decoder Product
-productDecoder =
-    Json.Decode.succeed Product
-        |> required "id" int
-        |> required "name" string
-        |> required "description" string
-        |> required "size" int
-        |> required "price_cents" int
-        |> required "category" catIdDecoder
