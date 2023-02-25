@@ -1,6 +1,6 @@
 module Pages.CategoryList exposing (..)
 
-import Category exposing (CategoryId, catIdDecoder, catIdToInt)
+import Category exposing (catIdDecoder, catIdToInt, Category)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (Html, a, div, h2, h3, p, text)
 import Html.Attributes exposing (href)
@@ -15,10 +15,6 @@ type alias Model =
     }
 
 
-type alias Category =
-    { id : CategoryId
-    , name : String
-    }
 
 
 init : ( Model, Cmd Msg )

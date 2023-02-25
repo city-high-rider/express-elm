@@ -3,6 +3,10 @@ module Category exposing (..)
 import Json.Decode exposing (Decoder, int)
 import Url.Parser exposing (Parser, custom)
 
+type alias Category =
+    { id : CategoryId
+    , name : String
+    }
 
 type CategoryId
     = CategoryId Int
