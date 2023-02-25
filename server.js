@@ -18,8 +18,16 @@ app.get('/', (req, res) => {
     res.send('Hello World!')
 })
 
-app.get('/queryDb', (req, res) => {
-    db.all("SELECT * FROM product", (err, rows) => {
+app.get('/menu/:category', (req, res) => {
+    db.all("SELECT * FROM product WHERE category = ?", [req.params.category], (err, rows) => {
+        console.log(err)
+        res.json(rows)
+    })
+})
+
+app.get('/categories', (req, res) => {
+    db.all("SELECT * FROM category", (err, rows) => {
+        console.log(err)
         res.json(rows)
     })
 })

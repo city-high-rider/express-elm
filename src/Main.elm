@@ -5,6 +5,7 @@ import Browser.Navigation as Nav
 import Html exposing (Html, div, h2, p, text)
 import Pages.Home as HomePageFile
 import Pages.Menu as MenuPageFile
+import Pages.CategoryList as CategoryPageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
 
@@ -32,6 +33,7 @@ type Page
     = NotFoundPage
     | HomePage
     | Menu MenuPageFile.Model
+    | CategoriesPage CategoryPageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -63,6 +65,13 @@ initCurrentPage ( model, initialCmds ) =
                             MenuPageFile.init catId
                     in
                     (Menu menuModel, Cmd.map MenuMsg menuCmds)
+
+                MenuList ->
+                    let
+                        (listModel, listCmds) =
+                            CategoryPageFile.init 
+                    in
+                    (CategoriesPage listModel, Cmd.map CatMsg listCmds)
     in
     ( { model | page = currentPage }
     , Cmd.batch [ initialCmds, mappedCmds ]
@@ -87,6 +96,9 @@ currentView model =
         Menu menuModel ->
             Html.map MenuMsg (MenuPageFile.view menuModel)
 
+        CategoriesPage catModel ->
+            Html.map CatMsg (CategoryPageFile.view catModel)
+
 
 notFoundView : Html Msg
 notFoundView =
@@ -99,6 +111,7 @@ type Msg
     = LinkClicked UrlRequest
     | UrlChanged Url
     | MenuMsg MenuPageFile.Msg
+    | CatMsg CategoryPageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -128,6 +141,14 @@ update msg model =
             , Cmd.map MenuMsg cmds
             )
 
+        (CatMsg cMsg, CategoriesPage cModel) ->
+            let 
+                (newModel, cmds) =
+                    CategoryPageFile.update cMsg cModel
+            in
+            ( {model | page = CategoriesPage newModel}
+            , Cmd.map CatMsg cmds
+            )
         (_, _) ->
             (model, Cmd.none)
 
