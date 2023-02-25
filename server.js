@@ -1,6 +1,9 @@
 const express = require('express')
+const sqlite3 = require('sqlite3').verbose()
 const app = express()
 const port = 3000
+
+const db = new sqlite3.Database("./coffee.db")
 
 // Add headers to work with elm-live
 app.use((req, res, next) => {
@@ -12,7 +15,13 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+    res.send('Hello World!')
+})
+
+app.get('/queryDb', (req, res) => {
+    db.all("SELECT * FROM product", (err, rows) => {
+        res.json(rows)
+    })
 })
 
 app.listen(port, () => {
