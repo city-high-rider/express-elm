@@ -15,9 +15,14 @@ import RemoteData exposing (WebData)
 
 
 type alias Model =
-    { categories : WebData (List Category)
-    , sections : List Section
+    { categories : WebData (List Category) -- these are the available categories to pick food from
+    , sections : List Section -- list of sections that are currently displayed
     }
+
+
+
+-- you will see categories referred to as "cats" extensively
+{- A section consists of a category and its corresponding food items -}
 
 
 type alias Section =
@@ -36,12 +41,14 @@ init =
 
 -- view function
 
+
 view : Model -> Html Msg
 view model =
     div []
-    [ viewChecks model
-    , viewSections model.sections
-    ]
+        [ viewChecks model
+        , viewSections model.sections
+        ]
+
 
 viewChecks : Model -> Html Msg
 viewChecks model =
@@ -66,15 +73,15 @@ viewChecks model =
 
 viewSections : List Section -> Html Msg
 viewSections sections =
-    div [] (List.map viewSection sections) 
+    div [] (List.map viewSection sections)
 
 
 viewSection : Section -> Html Msg
 viewSection section =
     div []
-    [ h2 [] [text section.category.name]
-    , viewProds section.products
-    ]
+        [ h2 [] [ text section.category.name ]
+        , viewProds section.products section.category.units
+        ]
 
 
 makeCheckmarks : List Category -> Html Msg
@@ -91,8 +98,8 @@ makeCheckmark cat =
         ]
 
 
-viewProds : WebData (List Product) -> Html Msg
-viewProds prods =
+viewProds : WebData (List Product) -> String -> Html Msg
+viewProds prods units =
     case prods of
         RemoteData.NotAsked ->
             p [] [ text "haven't asked" ]
@@ -107,11 +114,11 @@ viewProds prods =
                 ]
 
         RemoteData.Success goodProds ->
-            div [] (List.map viewProd goodProds)
+            div [] (List.map (viewProd units) goodProds)
 
 
-viewProd : Product -> Html Msg
-viewProd product =
+viewProd : String -> Product -> Html Msg
+viewProd units product =
     let
         productCost =
             String.fromFloat <| (toFloat product.price / 100)
@@ -120,7 +127,7 @@ viewProd product =
         [ h3 [] [ text product.name ]
         , p [] [ text ("Description: " ++ product.description) ]
         , p [] [ text ("Cost : " ++ productCost) ]
-        , p [] [ text (String.fromInt product.size ++ " mL") ]
+        , p [] [ text (String.fromInt product.size ++ units) ]
         ]
 
 
