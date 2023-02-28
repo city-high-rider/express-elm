@@ -14,6 +14,8 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(express.json())
+
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })
@@ -32,6 +34,11 @@ app.get('/categories', (req, res) => {
     })
 })
 
+app.post('/newCat', (req,res) => {
+    db.run("INSERT INTO category (name, sizeunits) VALUES (?, ?)", [req.body.name, req.body.units], (err) => {
+        console.log(err)
+    })
+})
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })

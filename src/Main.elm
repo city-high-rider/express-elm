@@ -5,6 +5,7 @@ import Browser.Navigation as Nav
 import Html exposing (Html, div, h2, p, text)
 import Pages.Home as HomePageFile
 import Pages.Menu as MenuPageFile
+import Pages.Create as CreatePageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
 
@@ -32,6 +33,7 @@ type Page
     = NotFoundPage
     | HomePage
     | Menu MenuPageFile.Model
+    | CreatePage CreatePageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -63,6 +65,13 @@ initCurrentPage ( model, initialCmds ) =
                             MenuPageFile.init
                     in
                     ( Menu menuModel, Cmd.map MenuMsg menuCmds )
+
+                CreateRoute ->
+                    let
+                        (createModel, createCmds) =
+                            CreatePageFile.init
+                    in
+                    (CreatePage createModel, Cmd.map CreateMsg createCmds)
     in
     ( { model | page = currentPage }
     , Cmd.batch [ initialCmds, mappedCmds ]
@@ -88,6 +97,9 @@ currentView model =
         Menu menuModel ->
             Html.map MenuMsg (MenuPageFile.view menuModel)
 
+        CreatePage createModel ->
+            Html.map CreateMsg (CreatePageFile.view createModel)
+
 
 notFoundView : Html Msg
 notFoundView =
@@ -100,6 +112,7 @@ type Msg
     = LinkClicked UrlRequest
     | UrlChanged Url
     | MenuMsg MenuPageFile.Msg
+    | CreateMsg CreatePageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,6 +140,15 @@ update msg model =
             in
             ( { model | page = Menu newModel }
             , Cmd.map MenuMsg cmds
+            )
+
+        ( CreateMsg cMsg, CreatePage cModel ) ->
+            let
+                ( newModel, cmds ) =
+                    CreatePageFile.update cMsg cModel
+            in
+            ( { model | page = CreatePage newModel }
+            , Cmd.map CreateMsg cmds
             )
 
         ( _, _ ) ->
