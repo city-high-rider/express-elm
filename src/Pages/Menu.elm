@@ -1,6 +1,6 @@
 module Pages.Menu exposing (..)
 
-import Category exposing (Category, CategoryId, catsDecoder)
+import Category exposing (Category, CategoryId, getCategories)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
 import Html.Attributes exposing (type_)
@@ -34,7 +34,7 @@ type alias Section =
 init : ( Model, Cmd Msg )
 init =
     ( Model RemoteData.Loading []
-    , getCategories
+    , getCategories GotCats
     )
 
 
@@ -198,9 +198,3 @@ updateSection section =
     getProducts section.category.id
 
 
-getCategories : Cmd Msg
-getCategories =
-    Http.get
-        { url = "http://localhost:3000/categories"
-        , expect = Http.expectJson (RemoteData.fromResult >> GotCats) catsDecoder
-        }

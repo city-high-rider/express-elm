@@ -4,6 +4,8 @@ import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
 import Url.Parser exposing (Parser, custom)
 import Json.Encode as Encode
+import Http
+import RemoteData exposing (WebData)
 
 type alias Category =
     { id : CategoryId
@@ -57,3 +59,9 @@ newCatEncoder cat =
         , ("units", Encode.string cat.units)
         ]
 
+getCategories : (WebData (List Category) -> msg) -> Cmd msg
+getCategories msg =
+    Http.get
+        { url = "http://localhost:3000/categories"
+        , expect = Http.expectJson (RemoteData.fromResult >> msg) catsDecoder
+        }
