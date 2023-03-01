@@ -1,4 +1,4 @@
-module Pages.Create exposing (..)
+module Pages.Admin exposing (..)
 
 import Category exposing (Category, catIdToString, getCategories)
 import ErrorViewing exposing (viewHttpError)
@@ -17,10 +17,29 @@ type alias Model =
     }
 
 
+emptyModel : Model
+emptyModel =
+    Model
+        Category.empty
+        Nothing
+        RemoteData.Loading
+        "Waiting for input..."
+
+
 init : ( Model, Cmd Msg )
 init =
-    ( Model Category.empty Nothing RemoteData.Loading "Waiting for input...", getCategories GotCats )
+    ( emptyModel, getCategories GotCats )
 
+
+refreshModel : String -> Cmd Msg -> (Model, Cmd Msg)
+refreshModel resultMsg otherCmds =
+    let 
+        (initialModel, initialCmds) =
+            init
+    in
+    ( {initialModel | successStatus = resultMsg}
+    , Cmd.batch [otherCmds, initialCmds]
+    )
 
 view : Model -> Html Msg
 view model =

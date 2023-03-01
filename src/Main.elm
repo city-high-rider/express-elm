@@ -5,7 +5,7 @@ import Browser.Navigation as Nav
 import Html exposing (Html, div, h2, p, text)
 import Pages.Home as HomePageFile
 import Pages.Menu as MenuPageFile
-import Pages.Create as CreatePageFile
+import Pages.Admin as AdminPageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
 
@@ -33,7 +33,7 @@ type Page
     = NotFoundPage
     | HomePage
     | Menu MenuPageFile.Model
-    | CreatePage CreatePageFile.Model
+    | AdminPage AdminPageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -69,9 +69,9 @@ initCurrentPage ( model, initialCmds ) =
                 CreateRoute ->
                     let
                         (createModel, createCmds) =
-                            CreatePageFile.init
+                            AdminPageFile.init
                     in
-                    (CreatePage createModel, Cmd.map CreateMsg createCmds)
+                    (AdminPage createModel, Cmd.map AdminMsg createCmds)
     in
     ( { model | page = currentPage }
     , Cmd.batch [ initialCmds, mappedCmds ]
@@ -97,8 +97,8 @@ currentView model =
         Menu menuModel ->
             Html.map MenuMsg (MenuPageFile.view menuModel)
 
-        CreatePage createModel ->
-            Html.map CreateMsg (CreatePageFile.view createModel)
+        AdminPage createModel ->
+            Html.map AdminMsg (AdminPageFile.view createModel)
 
 
 notFoundView : Html Msg
@@ -112,7 +112,7 @@ type Msg
     = LinkClicked UrlRequest
     | UrlChanged Url
     | MenuMsg MenuPageFile.Msg
-    | CreateMsg CreatePageFile.Msg
+    | AdminMsg AdminPageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -142,13 +142,13 @@ update msg model =
             , Cmd.map MenuMsg cmds
             )
 
-        ( CreateMsg cMsg, CreatePage cModel ) ->
+        ( AdminMsg cMsg, AdminPage cModel ) ->
             let
                 ( newModel, cmds ) =
-                    CreatePageFile.update cMsg cModel
+                    AdminPageFile.update cMsg cModel
             in
-            ( { model | page = CreatePage newModel }
-            , Cmd.map CreateMsg cmds
+            ( { model | page = AdminPage newModel }
+            , Cmd.map AdminMsg cmds
             )
 
         ( _, _ ) ->
