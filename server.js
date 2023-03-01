@@ -8,7 +8,7 @@ const db = new sqlite3.Database("./coffee.db")
 // Add headers to work with elm-live
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8000');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
     res.setHeader('Access-Control-Allow-Credentials', true);
     next();
@@ -39,6 +39,17 @@ app.post('/newCat', (req,res) => {
         console.log(err)
     })
 })
+
+app.delete('/deleteCat/:id', (req, res) => {
+    db.run("DELETE FROM category WHERE id = ?", [req.params.id], (err) => {
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("Success")
+    })
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })

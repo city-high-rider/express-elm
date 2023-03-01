@@ -1,11 +1,12 @@
 module Category exposing (..)
 
+import Http
 import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
-import Url.Parser exposing (Parser, custom)
 import Json.Encode as Encode
-import Http
 import RemoteData exposing (WebData)
+import Url.Parser exposing (Parser, custom)
+
 
 type alias Category =
     { id : CategoryId
@@ -26,6 +27,19 @@ type CategoryId
 catIdToInt : CategoryId -> Int
 catIdToInt (CategoryId id) =
     id
+
+
+catIdToString : CategoryId -> String
+catIdToString id = String.fromInt <| catIdToInt id
+
+intToCatId : Int -> CategoryId
+intToCatId x =
+    CategoryId x
+
+
+emptyCatId : CategoryId
+emptyCatId =
+    CategoryId -1
 
 
 catIdDecoder : Decoder CategoryId
@@ -55,9 +69,10 @@ catDecoder =
 newCatEncoder : Category -> Encode.Value
 newCatEncoder cat =
     Encode.object
-        [ ("name", Encode.string cat.name)
-        , ("units", Encode.string cat.units)
+        [ ( "name", Encode.string cat.name )
+        , ( "units", Encode.string cat.units )
         ]
+
 
 getCategories : (WebData (List Category) -> msg) -> Cmd msg
 getCategories msg =
