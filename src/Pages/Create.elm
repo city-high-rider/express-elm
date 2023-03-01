@@ -172,6 +172,7 @@ submitResult cat =
     Http.post
         { url = "http://localhost:3000/newCat"
         , body = Http.jsonBody (Category.newCatEncoder cat)
+
         -- this won't do anything because our server doesn't send json back yet
         , expect = Http.expectJson CatCreated Category.catDecoder
         }
@@ -182,7 +183,7 @@ deleteCat id =
     Http.request
         { method = "DELETE"
         , headers = []
-        , url = "http://localhost:3000/deleteCat/" ++ (catIdToString id)
+        , url = "http://localhost:3000/deleteCat/" ++ catIdToString id
         , body = Http.emptyBody
         , expect = Http.expectString CatDeleted
         , timeout = Nothing
