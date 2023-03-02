@@ -15,15 +15,85 @@ type alias Product =
     }
 
 
-empty : Product
+type alias UserInputProduct =
+    { name : String
+    , description : String
+    , size : String
+    , price : String
+    , category : String
+    }
+
+
+empty : UserInputProduct
 empty =
-    Product
-        -1
+    UserInputProduct
         ""
         ""
-        0
-        0
-        (Category.intToCatId -1)
+        ""
+        ""
+        ""
+
+
+userInputToProduct : UserInputProduct -> Result String Product
+userInputToProduct userInput =
+    let
+        processSize =
+            Result.fromMaybe "Size must be integer!" (String.toInt userInput.size)
+                |> Result.andThen checkPositive
+
+        processCost =
+            Result.fromMaybe "Cost must be integer!" (String.toInt userInput.price)
+                |> Result.andThen checkPositive
+
+        processCategory =
+            Result.fromMaybe "Select a category!" (String.toInt userInput.category)
+                |> Result.andThen checkPositive
+    in
+    case allOk [ processSize, processCost, processCategory ] of
+        Err e ->
+            Err e
+
+        Ok (s :: c :: cat :: []) ->
+            Ok <|
+                Product
+                    -1
+                    userInput.name
+                    userInput.description
+                    s
+                    c
+                    (Category.intToCatId cat)
+
+        _ ->
+            Err "Not enough information"
+
+
+allOk : List (Result e a) -> Result e (List a)
+allOk toCheck =
+    let
+        fn : Result e a -> Result e (List a) -> Result e (List a)
+        fn element accumulator =
+            case ( element, accumulator ) of
+                ( Ok e, Ok xs ) ->
+                    Ok (xs ++ [ e ])
+
+                ( Err e, Ok _ ) ->
+                    Err e
+
+                ( _, Err e ) ->
+                    Err e
+    in
+    List.foldl fn (Ok []) toCheck
+
+
+checkPositive : Int -> Result String Int
+checkPositive n =
+    if n <= 0 then
+        Err "Input must be positive and non zero!"
+
+    else
+        Ok n
+
+
 
 -- decoders
 

@@ -5,22 +5,21 @@ import ErrorViewing exposing (viewHttpError)
 import Form.Category
 import Form.Product
 import Html exposing (..)
-import Html.Attributes exposing (type_, value)
+import Html.Attributes exposing (type_)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Products exposing (Product)
+import Products exposing (UserInputProduct)
 import RemoteData exposing (WebData)
 
 
 type alias Model =
     { catToSubmit : Category
-    , productToSubmit : Product
+    , productToSubmit : UserInputProduct
     , catToDelete : Maybe Category.CategoryId
     , availableCats : WebData (List Category)
     , successStatus : String
     , isConfirmShowing : Bool
     }
-
 
 emptyModel : Model
 emptyModel =
@@ -136,12 +135,25 @@ showProductForm model =
         RemoteData.Success cats ->
             div []
                 [ Form.Product.productForm cats model.productToSubmit UpdatedProduct
+                , showProductErrorOrButton model.productToSubmit
                 ]
 
 
+showProductErrorOrButton : UserInputProduct -> Html Msg
+showProductErrorOrButton userInput =
+    case Products.userInputToProduct userInput of
+        Err error ->
+            div []
+                [ h3 [] [text "Input error: "]
+                , p [] [text error]
+                ]
+        Ok _ ->
+            p [] [text "all goods"]
+    
+
 type Msg
     = UpdatedCategory Category
-    | UpdatedProduct (Result String Product)
+    | UpdatedProduct UserInputProduct
     | Submit
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
@@ -156,10 +168,7 @@ update msg model =
         UpdatedCategory newCat ->
             ( { model | catToSubmit = newCat }, Cmd.none )
 
-        UpdatedProduct (Err e) ->
-            ( { model | successStatus = "Error: " ++ e }, Cmd.none )
-
-        UpdatedProduct (Ok newProd) ->
+        UpdatedProduct newProd ->
             ( { model | productToSubmit = newProd }, Cmd.none )
 
         ClickedCat str ->
