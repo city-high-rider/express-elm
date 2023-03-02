@@ -14,6 +14,7 @@ type alias Model =
     , catToDelete : Maybe Category.CategoryId
     , availableCats : WebData (List Category)
     , successStatus : String
+    , isConfirmShowing : Bool
     }
 
 
@@ -24,6 +25,7 @@ emptyModel =
         Nothing
         RemoteData.Loading
         "Waiting for input..."
+        False
 
 
 init : ( Model, Cmd Msg )
@@ -31,48 +33,44 @@ init =
     ( emptyModel, getCategories GotCats )
 
 
-refreshModel : String -> Cmd Msg -> (Model, Cmd Msg)
+refreshModel : String -> Cmd Msg -> ( Model, Cmd Msg )
 refreshModel resultMsg otherCmds =
-    let 
-        (initialModel, initialCmds) =
+    let
+        ( initialModel, initialCmds ) =
             init
     in
-    ( {initialModel | successStatus = resultMsg}
-    , Cmd.batch [otherCmds, initialCmds]
+    ( { initialModel | successStatus = resultMsg }
+    , Cmd.batch [ otherCmds, initialCmds ]
     )
+
 
 view : Model -> Html Msg
 view model =
     div []
         [ h2 [] [ text "Create a category" ]
-        , viewForm
+        , viewForm model.catToSubmit
         , h2 [] [ text "Remove a category" ]
-        , deleteForm model
+        , div []
+            [ deleteForm model
+            , confirmDelete model.catToDelete model.isConfirmShowing
+            ]
         , p [] [ text model.successStatus ]
-        , showSelected model.catToDelete
         ]
 
 
-showSelected : Maybe Category.CategoryId -> Html Msg
-showSelected maybe =
-    div []
-        [ text (Maybe.withDefault "Nothing selected!" (Maybe.map catIdToString maybe))
-        ]
-
-
-viewForm : Html Msg
-viewForm =
+viewForm : Category -> Html Msg
+viewForm toSubmit =
     Html.form []
         [ div []
             [ text "Category name"
             , br [] []
-            , input [ type_ "text", onInput StoreName ] []
+            , input [ type_ "text", value toSubmit.name, onInput StoreName ] []
             ]
         , br [] []
         , div []
             [ text "Units of size measurement"
             , br [] []
-            , input [ type_ "text", onInput StoreUnits ] []
+            , input [ type_ "text", value toSubmit.units, onInput StoreUnits ] []
             ]
         , br [] []
         , div []
@@ -103,11 +101,22 @@ deleteForm model =
                     [ select [ onInput ClickedCat ] (defaultOption :: catsToOptions cats)
                     ]
                 , div []
-                    [ button [ type_ "button", onClick (Delete model.catToDelete) ]
+                    [ button [ type_ "button", onClick (ToggleConfirm True) ]
                         [ text "Delete" ]
                     ]
                 ]
 
+confirmDelete : Maybe (Category.CategoryId) -> Bool -> Html Msg
+confirmDelete toDelete isShowing =
+    if not isShowing then
+        div [] []
+    else
+        div []
+        [ p [] [text "Are you sure?"]
+        , button [onClick (ToggleConfirm False)] [text "No!"]
+        , button [onClick (Delete toDelete)] [text "Yes!"]
+        ]
+    
 
 defaultOption : Html Msg
 defaultOption =
@@ -128,9 +137,9 @@ type Msg
     = StoreName String
     | StoreUnits String
     | Submit
+    | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
-    | CatDeleted (Result Http.Error String)
-    | CatCreated (Result Http.Error Category)
+    | ServerFeedback String (Result Http.Error String)
     | ClickedCat String
     | GotCats (WebData (List Category))
 
@@ -170,20 +179,24 @@ update msg model =
         Delete (Just id) ->
             ( model, deleteCat id )
 
-        CatCreated (Ok _) ->
-            ( { model | successStatus = "Created the post successfully!" }, Cmd.none )
-
-        CatCreated (Err _) ->
-            ( { model | successStatus = "There was an issue creating the category!" }, Cmd.none )
-
-        CatDeleted (Err _) ->
-            ( { model | successStatus = "There was an issue deleting the category!" }, Cmd.none )
-
-        CatDeleted (Ok _) ->
-            ( { model | successStatus = "Successfully deleted the category" }, Cmd.none )
+        ServerFeedback action result ->
+            refreshModel (createSuccessMessage result action) Cmd.none
 
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
+
+        ToggleConfirm s ->
+            ({model | isConfirmShowing = s}, Cmd.none)
+
+
+createSuccessMessage : Result e a -> String -> String
+createSuccessMessage result action =
+    case result of
+        Err _ ->
+            "Something went wrong!"
+
+        Ok _ ->
+            "successfully " ++ action ++ " category"
 
 
 submitResult : Category -> Cmd Msg
@@ -191,9 +204,7 @@ submitResult cat =
     Http.post
         { url = "http://localhost:3000/newCat"
         , body = Http.jsonBody (Category.newCatEncoder cat)
-
-        -- this won't do anything because our server doesn't send json back yet
-        , expect = Http.expectJson CatCreated Category.catDecoder
+        , expect = Http.expectString (ServerFeedback "created")
         }
 
 
@@ -204,7 +215,7 @@ deleteCat id =
         , headers = []
         , url = "http://localhost:3000/deleteCat/" ++ catIdToString id
         , body = Http.emptyBody
-        , expect = Http.expectString CatDeleted
+        , expect = Http.expectString (ServerFeedback "deleted")
         , timeout = Nothing
         , tracker = Nothing
         }
