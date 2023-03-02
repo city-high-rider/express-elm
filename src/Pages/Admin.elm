@@ -2,12 +2,13 @@ module Pages.Admin exposing (..)
 
 import Category exposing (Category, catIdToString, getCategories)
 import ErrorViewing exposing (viewHttpError)
+import Form.Category
+import Form.Product
 import Html exposing (..)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import RemoteData exposing (WebData)
-import Form.Category
 
 
 type alias Model =
@@ -90,7 +91,7 @@ deleteForm model =
         RemoteData.Success cats ->
             Html.form []
                 [ div []
-                    [ select [ onInput ClickedCat ] (defaultOption :: catsToOptions cats)
+                    [ select [ onInput ClickedCat ] (Form.Product.defaultOption :: Form.Category.catsToOptions cats)
                     ]
                 , div []
                     [ button [ type_ "button", onClick (ToggleConfirm True) ]
@@ -112,21 +113,6 @@ confirmDelete toDelete isShowing =
             ]
 
 
-defaultOption : Html Msg
-defaultOption =
-    option [ value "Nothing" ] [ text "Select..." ]
-
-
-catsToOptions : List Category -> List (Html Msg)
-catsToOptions cats =
-    List.map catToOption cats
-
-
-catToOption : Category -> Html Msg
-catToOption cat =
-    option [ value (String.fromInt <| Category.catIdToInt cat.id) ] [ text cat.name ]
-
-
 type Msg
     = UpdatedCategory Category
     | Submit
@@ -141,7 +127,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdatedCategory newCat ->
-            ( {model | catToSubmit = newCat}, Cmd.none)
+            ( { model | catToSubmit = newCat }, Cmd.none )
 
         ClickedCat str ->
             ( { model | catToDelete = Maybe.map Category.intToCatId (String.toInt str) }, Cmd.none )
