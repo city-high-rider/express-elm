@@ -7,6 +7,7 @@ import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import RemoteData exposing (WebData)
+import Form.Category
 
 
 type alias Model =
@@ -63,18 +64,7 @@ view model =
 viewForm : Category -> Html Msg
 viewForm toSubmit =
     Html.form []
-        [ div []
-            [ text "Category name"
-            , br [] []
-            , input [ type_ "text", value toSubmit.name, onInput StoreName ] []
-            ]
-        , br [] []
-        , div []
-            [ text "Units of size measurement"
-            , br [] []
-            , input [ type_ "text", value toSubmit.units, onInput StoreUnits ] []
-            ]
-        , br [] []
+        [ Form.Category.categoryForm toSubmit UpdatedCategory
         , div []
             [ button [ type_ "button", onClick Submit ]
                 [ text "Create" ]
@@ -138,8 +128,7 @@ catToOption cat =
 
 
 type Msg
-    = StoreName String
-    | StoreUnits String
+    = UpdatedCategory Category
     | Submit
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
@@ -151,25 +140,8 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        StoreName val ->
-            let
-                oldCat =
-                    model.catToSubmit
-
-                newCat =
-                    { oldCat | name = val }
-            in
-            ( { model | catToSubmit = newCat }, Cmd.none )
-
-        StoreUnits val ->
-            let
-                oldCat =
-                    model.catToSubmit
-
-                newCat =
-                    { oldCat | units = val }
-            in
-            ( { model | catToSubmit = newCat }, Cmd.none )
+        UpdatedCategory newCat ->
+            ( {model | catToSubmit = newCat}, Cmd.none)
 
         ClickedCat str ->
             ( { model | catToDelete = Maybe.map Category.intToCatId (String.toInt str) }, Cmd.none )
