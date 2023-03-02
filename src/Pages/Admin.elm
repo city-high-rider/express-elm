@@ -8,11 +8,13 @@ import Html exposing (..)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Products exposing (Product)
 import RemoteData exposing (WebData)
 
 
 type alias Model =
     { catToSubmit : Category
+    , productToSubmit : Product
     , catToDelete : Maybe Category.CategoryId
     , availableCats : WebData (List Category)
     , successStatus : String
@@ -24,6 +26,7 @@ emptyModel : Model
 emptyModel =
     Model
         Category.empty
+        Products.empty
         Nothing
         RemoteData.Loading
         "Waiting for input..."
@@ -57,7 +60,9 @@ view model =
             , confirmDelete model.catToDelete model.isConfirmShowing
             ]
         , div []
-            []
+            [ h2 [] [text "add a product"]
+            , showProductForm model
+            ]
         , p [] [ text model.successStatus ]
         ]
 
@@ -113,8 +118,30 @@ confirmDelete toDelete isShowing =
             ]
 
 
+showProductForm : Model -> Html Msg
+showProductForm model =
+    case model.availableCats of
+        RemoteData.NotAsked ->
+            p [] [ text "You never asked for the category data!" ]
+
+        RemoteData.Loading ->
+            p [] [ text "Getting categories from server.. please wait" ]
+
+        RemoteData.Failure err ->
+            div []
+                [ h3 [] [ text "Couldn't get categories!" ]
+                , viewHttpError err
+                ]
+
+        RemoteData.Success cats ->
+            div []
+                [ Form.Product.productForm cats model.productToSubmit UpdatedProduct
+                ]
+
+
 type Msg
     = UpdatedCategory Category
+    | UpdatedProduct (Maybe Product)
     | Submit
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
@@ -128,6 +155,12 @@ update msg model =
     case msg of
         UpdatedCategory newCat ->
             ( { model | catToSubmit = newCat }, Cmd.none )
+
+        UpdatedProduct Nothing ->
+            ( { model | successStatus = "Invalid input for product form!" }, Cmd.none )
+
+        UpdatedProduct (Just newProd) ->
+            ( { model | productToSubmit = newProd }, Cmd.none )
 
         ClickedCat str ->
             ( { model | catToDelete = Maybe.map Category.intToCatId (String.toInt str) }, Cmd.none )

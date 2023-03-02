@@ -16,11 +16,11 @@ import Html.Events exposing (onInput)
 import Products exposing (Product)
 
 
-categoryForm : List Category -> Product -> (Maybe Product -> msg) -> Html msg
-categoryForm cats oldProduct msg =
+productForm : List Category -> Product -> (Maybe Product -> msg) -> Html msg
+productForm cats oldProduct msg =
     div []
         [ div []
-            [ text ""
+            [ text "Product name"
             , br [] []
             , input
                 [ type_ "text"
