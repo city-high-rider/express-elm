@@ -8,7 +8,7 @@
 
 module Form.Product exposing (..)
 
-import Category exposing (Category, CategoryId, catIdToString)
+import Category exposing (Category)
 import Form.Category exposing (catsToOptions)
 import Html exposing (Html, br, div, input, option, select, text)
 import Html.Attributes exposing (type_, value)
@@ -16,7 +16,7 @@ import Html.Events exposing (onInput)
 import Products exposing (Product)
 
 
-productForm : List Category -> Product -> (Maybe Product -> msg) -> Html msg
+productForm : List Category -> Product -> (Result String Product -> msg) -> Html msg
 productForm cats oldProduct msg =
     div []
         [ div []
@@ -25,7 +25,7 @@ productForm cats oldProduct msg =
             , input
                 [ type_ "text"
                 , value oldProduct.name
-                , onInput (msg << Just << updateName oldProduct)
+                , onInput (msg << Ok << updateName oldProduct)
                 ]
                 []
             ]
@@ -47,7 +47,7 @@ productForm cats oldProduct msg =
             , input
                 [ type_ "text"
                 , value oldProduct.description
-                , onInput (msg << Just << updateDescription oldProduct)
+                , onInput (msg << Ok << updateDescription oldProduct)
                 ]
                 []
             ]
@@ -88,31 +88,50 @@ updateDescription oldProd newDescription =
     { oldProd | description = newDescription }
 
 
-updateCost : Product -> String -> Maybe Product
+updateCost : Product -> String -> Result String Product
 updateCost oldProd newCost =
-    case String.toInt newCost of
-        Nothing ->
-            Nothing
+    let
+        value =
+            Result.fromMaybe "Invalid cost! Must be an integer." (String.toInt newCost)
+                |> Result.andThen checkPositive
+    in
+    case value of
+        Err e ->
+            Err e
 
-        Just n ->
-            Just { oldProd | price = n }
+        Ok n ->
+            Ok { oldProd | price = n }
 
 
-updateSize : Product -> String -> Maybe Product
+updateSize : Product -> String -> Result String Product
 updateSize oldProd newSize =
-    case String.toInt newSize of
-        Nothing ->
-            Nothing
+    let
+        value =
+            Result.fromMaybe "Invalid size! Must be an integer." (String.toInt newSize)
+                |> Result.andThen checkPositive
+    in
+    case value of
+        Err e ->
+            Err e
 
-        Just n ->
-            Just { oldProd | size = n }
+        Ok n ->
+            Ok { oldProd | size = n }
 
 
-updateCategory : Product -> String -> Maybe Product
+updateCategory : Product -> String -> Result String Product
 updateCategory oldProd newCat =
     case Maybe.map Category.intToCatId (String.toInt newCat) of
         Nothing ->
-            Nothing
+            Err "Select a category!"
 
         Just newId ->
-            Just { oldProd | category = newId }
+            Ok { oldProd | category = newId }
+
+
+checkPositive : Int -> Result String Int
+checkPositive n =
+    if n <= 0 then
+        Err "Input must be positive and non zero!"
+
+    else
+        Ok n

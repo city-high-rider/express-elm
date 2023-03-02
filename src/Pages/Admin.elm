@@ -60,7 +60,7 @@ view model =
             , confirmDelete model.catToDelete model.isConfirmShowing
             ]
         , div []
-            [ h2 [] [text "add a product"]
+            [ h2 [] [ text "add a product" ]
             , showProductForm model
             ]
         , p [] [ text model.successStatus ]
@@ -141,7 +141,7 @@ showProductForm model =
 
 type Msg
     = UpdatedCategory Category
-    | UpdatedProduct (Maybe Product)
+    | UpdatedProduct (Result String Product)
     | Submit
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
@@ -156,10 +156,10 @@ update msg model =
         UpdatedCategory newCat ->
             ( { model | catToSubmit = newCat }, Cmd.none )
 
-        UpdatedProduct Nothing ->
-            ( { model | successStatus = "Invalid input for product form!" }, Cmd.none )
+        UpdatedProduct (Err e) ->
+            ( { model | successStatus = "Error: " ++ e }, Cmd.none )
 
-        UpdatedProduct (Just newProd) ->
+        UpdatedProduct (Ok newProd) ->
             ( { model | productToSubmit = newProd }, Cmd.none )
 
         ClickedCat str ->
