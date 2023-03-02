@@ -54,6 +54,8 @@ view model =
             [ deleteForm model
             , confirmDelete model.catToDelete model.isConfirmShowing
             ]
+        , div []
+            []
         , p [] [ text model.successStatus ]
         ]
 
@@ -106,17 +108,19 @@ deleteForm model =
                     ]
                 ]
 
-confirmDelete : Maybe (Category.CategoryId) -> Bool -> Html Msg
+
+confirmDelete : Maybe Category.CategoryId -> Bool -> Html Msg
 confirmDelete toDelete isShowing =
     if not isShowing then
         div [] []
+
     else
         div []
-        [ p [] [text "Are you sure?"]
-        , button [onClick (ToggleConfirm False)] [text "No!"]
-        , button [onClick (Delete toDelete)] [text "Yes!"]
-        ]
-    
+            [ p [] [ text "Are you sure?" ]
+            , button [ onClick (ToggleConfirm False) ] [ text "No!" ]
+            , button [ onClick (Delete toDelete) ] [ text "Yes!" ]
+            ]
+
 
 defaultOption : Html Msg
 defaultOption =
@@ -171,7 +175,14 @@ update msg model =
             ( { model | catToDelete = Maybe.map Category.intToCatId (String.toInt str) }, Cmd.none )
 
         Submit ->
-            ( model, submitResult model.catToSubmit )
+            case Category.verifyCat model.catToSubmit of
+                Err error ->
+                    ( { model | successStatus = "Error creating category: " ++ error }
+                    , Cmd.none
+                    )
+
+                Ok cat ->
+                    ( model, submitResult cat )
 
         Delete Nothing ->
             ( { model | successStatus = "Can't delete nothing!" }, Cmd.none )
@@ -186,7 +197,7 @@ update msg model =
             ( { model | availableCats = cats }, Cmd.none )
 
         ToggleConfirm s ->
-            ({model | isConfirmShowing = s}, Cmd.none)
+            ( { model | isConfirmShowing = s }, Cmd.none )
 
 
 createSuccessMessage : Result e a -> String -> String

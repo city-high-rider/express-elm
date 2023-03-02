@@ -80,3 +80,13 @@ getCategories msg =
         { url = "http://localhost:3000/categories"
         , expect = Http.expectJson (RemoteData.fromResult >> msg) catsDecoder
         }
+
+
+verifyCat : Category -> Result String Category
+verifyCat cat =
+    if cat.name == "" then
+        Err "Name musn't be empty!"
+    else if cat.units == "" then
+        Err "Must have units!"
+    else
+        Ok cat
