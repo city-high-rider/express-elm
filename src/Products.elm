@@ -15,6 +15,15 @@ type alias Product =
     }
 
 
+empty : Product
+empty =
+    Product
+        -1
+        ""
+        ""
+        0
+        0
+        (Category.intToCatId -1)
 
 -- decoders
 
