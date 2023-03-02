@@ -36,7 +36,12 @@ app.get('/categories', (req, res) => {
 
 app.post('/newCat', (req,res) => {
     db.run("INSERT INTO category (name, sizeunits) VALUES (?, ?)", [req.body.name, req.body.units], (err) => {
-        console.log(err)
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("success")
+        res.status(201)
     })
 })
 
