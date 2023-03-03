@@ -216,7 +216,7 @@ createSuccessMessage result action =
             "Something went wrong!"
 
         Ok _ ->
-            "successfully " ++ action ++ " category"
+            "successfully " ++ action 
 
 
 submitResult : Category -> Cmd Msg
@@ -224,7 +224,7 @@ submitResult cat =
     Http.post
         { url = "http://localhost:3000/newCat"
         , body = Http.jsonBody (Category.newCatEncoder cat)
-        , expect = Http.expectString (ServerFeedback "created")
+        , expect = Http.expectString (ServerFeedback "created category")
         }
 
 
@@ -233,7 +233,7 @@ submitProduct prod =
     Http.post
         { url = "http://localhost:3000/newProd"
         , body = Http.jsonBody (Products.newProductEncoder prod)
-        , expect = Http.expectString (ServerFeedback "created")
+        , expect = Http.expectString (ServerFeedback "created product")
         }
 
 
@@ -244,7 +244,7 @@ deleteCat id =
         , headers = []
         , url = "http://localhost:3000/deleteCat/" ++ catIdToString id
         , body = Http.emptyBody
-        , expect = Http.expectString (ServerFeedback "deleted")
+        , expect = Http.expectString (ServerFeedback "deleted category")
         , timeout = Nothing
         , tracker = Nothing
         }

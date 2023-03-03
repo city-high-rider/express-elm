@@ -45,6 +45,17 @@ app.post('/newCat', (req,res) => {
     })
 })
 
+app.post('/newProd', (req,res) => {
+    db.run("INSERT INTO product (name, description, size, category, price_cents) VALUES (?, ?, ?, ?, ?)", [req.body.name, req.body.description, req.body.size, req.body.category, req.body.price_cents], (err) => {
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("success")
+        res.status(201)
+    })
+})
+
 app.delete('/deleteCat/:id', (req, res) => {
     db.run("DELETE FROM category WHERE id = ?", [req.params.id], (err) => {
         if (err) {
