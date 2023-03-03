@@ -34,3 +34,16 @@ deleteCat msg id =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+updateCat : (String -> Result Http.Error String -> msg) -> Category -> Cmd msg
+updateCat msg cat =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = "http://localhost:3000/updateCat/" ++ catIdToString cat.id
+        , body = Http.jsonBody (Category.newCatEncoder cat)
+        , expect = Http.expectString (msg "updated category")
+        , timeout = Nothing
+        , tracker = Nothing
+        }

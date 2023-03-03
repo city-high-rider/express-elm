@@ -30,7 +30,9 @@ catIdToInt (CategoryId id) =
 
 
 catIdToString : CategoryId -> String
-catIdToString id = String.fromInt <| catIdToInt id
+catIdToString id =
+    String.fromInt <| catIdToInt id
+
 
 intToCatId : Int -> CategoryId
 intToCatId x =
@@ -86,7 +88,9 @@ verifyCat : Category -> Result String Category
 verifyCat cat =
     if cat.name == "" then
         Err "Name musn't be empty!"
+
     else if cat.units == "" then
         Err "Must have units!"
+
     else
         Ok cat
