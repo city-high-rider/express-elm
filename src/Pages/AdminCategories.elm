@@ -22,6 +22,11 @@ type alias Model =
     }
 
 
+type Action
+    = Editing
+    | Creating
+
+
 emptyModel : Model
 emptyModel =
     Model
@@ -81,9 +86,9 @@ viewLoaded model cats =
 categoryForm : Category -> Html Msg
 categoryForm toSubmit =
     Html.form []
-        [ Form.Category.categoryForm toSubmit UpdatedCategory
+        [ Form.Category.categoryForm toSubmit (UpdatedCategory Creating)
         , div []
-            [ button [ type_ "button", onClick Submit ]
+            [ button [ type_ "button", onClick (Submit Creating toSubmit) ]
                 [ text "Create" ]
             ]
         ]
@@ -137,16 +142,14 @@ showEditFormOrNothing mCat =
 
         Just cat ->
             div []
-                [ Form.Category.categoryForm cat UpdatedEditCat
-                , button [ onClick SubmitEdit ] [ text "Edit" ]
+                [ Form.Category.categoryForm cat (UpdatedCategory Editing)
+                , button [ onClick (Submit Editing cat) ] [ text "Edit" ]
                 ]
 
 
 type Msg
-    = UpdatedCategory Category
-    | UpdatedEditCat Category
-    | Submit
-    | SubmitEdit
+    = UpdatedCategory Action Category
+    | Submit Action Category
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
     | ServerFeedback String (Result Http.Error String)
@@ -158,10 +161,10 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdatedCategory newcat ->
+        UpdatedCategory Creating newcat ->
             ( { model | catToSubmit = newcat }, Cmd.none )
 
-        UpdatedEditCat newcat ->
+        UpdatedCategory Editing newcat ->
             ( { model | editingCat = Just newcat }, Cmd.none )
 
         ClickedCat str ->
@@ -170,32 +173,21 @@ update msg model =
         SelectedToEdit cats str ->
             ( { model | editingCat = getCatById str cats }, Cmd.none )
 
-        Submit ->
-            case Category.verifyCat model.catToSubmit of
+        Submit action category ->
+            let
+                request =
+                    if action == Creating then
+                        submitResult
+
+                    else
+                        updateCat
+            in
+            case Category.verifyCat category of
                 Err error ->
-                    ( { model | successStatus = "Error creating category: " ++ error }
-                    , Cmd.none
-                    )
+                    ( { model | successStatus = "Error! : " ++ error }, Cmd.none )
 
                 Ok cat ->
-                    ( model, submitResult ServerFeedback cat )
-
-        SubmitEdit ->
-            case model.editingCat of
-                Nothing ->
-                    ( { model | successStatus = "Error editing category: invalid category selected" }
-                    , Cmd.none
-                    )
-
-                Just c ->
-                    case Category.verifyCat c of
-                        Err error ->
-                            ( { model | successStatus = "Error editing category: " ++ error }
-                            , Cmd.none
-                            )
-
-                        Ok cat ->
-                            ( model, updateCat ServerFeedback cat )
+                    ( model, request ServerFeedback cat )
 
         Delete Nothing ->
             ( { model | successStatus = "Can't delete nothing!" }, Cmd.none )
