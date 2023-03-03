@@ -9,7 +9,8 @@ type Route
     = NotFound
     | Home
     | MenuRoute 
-    | CreateRoute
+    | AdminCategories
+    | AdminProducts
 
 
 parseUrl : Url -> Route
@@ -23,5 +24,6 @@ routeParser =
     oneOf
         [ map Home top
         , map MenuRoute (s "menu")
-        , map CreateRoute (s "create")
+        , map AdminCategories (s "adminCategories")
+        , map AdminProducts (s "adminProducts")
         ]

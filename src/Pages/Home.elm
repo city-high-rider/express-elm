@@ -9,5 +9,7 @@ view =
     , p [] [text "This is a test to try and read and display some information from a database, using an expressjs backend."]
     , a [href "/menu"] [text "go take a look at the menu!"]
     , p [] [text "or"]
-    , a [href "/create"] [text "create a category"]
+    , a [href "/adminCategories"] [text "Manage categories"]
+    , p [] []
+    , a [href "/adminProducts"] [text "Manage products"]
     ]

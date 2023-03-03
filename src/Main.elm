@@ -3,9 +3,10 @@ module Main exposing (main)
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Html exposing (Html, div, h2, p, text)
+import Pages.AdminCategories as CategoriesPageFile
+import Pages.AdminProducts as ProductsPageFile
 import Pages.Home as HomePageFile
 import Pages.Menu as MenuPageFile
-import Pages.Admin as AdminPageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
 
@@ -33,7 +34,8 @@ type Page
     = NotFoundPage
     | HomePage
     | Menu MenuPageFile.Model
-    | AdminPage AdminPageFile.Model
+    | CategoriesPage CategoriesPageFile.Model
+    | ProductsPage ProductsPageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -66,12 +68,19 @@ initCurrentPage ( model, initialCmds ) =
                     in
                     ( Menu menuModel, Cmd.map MenuMsg menuCmds )
 
-                CreateRoute ->
+                AdminCategories ->
                     let
-                        (createModel, createCmds) =
-                            AdminPageFile.init
+                        ( createModel, createCmds ) =
+                            CategoriesPageFile.init
                     in
-                    (AdminPage createModel, Cmd.map AdminMsg createCmds)
+                    ( CategoriesPage createModel, Cmd.map CatMsg createCmds )
+
+                AdminProducts ->
+                    let
+                        ( prodModel, prodCmds ) =
+                            ProductsPageFile.init
+                    in
+                    ( ProductsPage prodModel, Cmd.map ProdMsg prodCmds )
     in
     ( { model | page = currentPage }
     , Cmd.batch [ initialCmds, mappedCmds ]
@@ -97,8 +106,11 @@ currentView model =
         Menu menuModel ->
             Html.map MenuMsg (MenuPageFile.view menuModel)
 
-        AdminPage createModel ->
-            Html.map AdminMsg (AdminPageFile.view createModel)
+        CategoriesPage createModel ->
+            Html.map CatMsg (CategoriesPageFile.view createModel)
+
+        ProductsPage prodModel ->
+            Html.map ProdMsg (ProductsPageFile.view prodModel)
 
 
 notFoundView : Html Msg
@@ -112,7 +124,8 @@ type Msg
     = LinkClicked UrlRequest
     | UrlChanged Url
     | MenuMsg MenuPageFile.Msg
-    | AdminMsg AdminPageFile.Msg
+    | CatMsg CategoriesPageFile.Msg
+    | ProdMsg ProductsPageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -142,13 +155,22 @@ update msg model =
             , Cmd.map MenuMsg cmds
             )
 
-        ( AdminMsg cMsg, AdminPage cModel ) ->
+        ( CatMsg cMsg, CategoriesPage cModel ) ->
             let
                 ( newModel, cmds ) =
-                    AdminPageFile.update cMsg cModel
+                    CategoriesPageFile.update cMsg cModel
             in
-            ( { model | page = AdminPage newModel }
-            , Cmd.map AdminMsg cmds
+            ( { model | page = CategoriesPage newModel }
+            , Cmd.map CatMsg cmds
+            )
+
+        ( ProdMsg pMsg, ProductsPage pModel ) ->
+            let
+                ( newModel, cmds ) =
+                    ProductsPageFile.update pMsg pModel
+            in
+            ( { model | page = ProductsPage newModel }
+            , Cmd.map ProdMsg cmds
             )
 
         ( _, _ ) ->
