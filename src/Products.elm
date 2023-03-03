@@ -3,6 +3,7 @@ module Products exposing (..)
 import Category exposing (CategoryId, catIdDecoder)
 import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
+import Json.Encode as Encode
 
 
 type alias Product =
@@ -112,3 +113,14 @@ productDecoder =
         |> required "size" int
         |> required "price_cents" int
         |> required "category" catIdDecoder
+
+
+newProductEncoder : Product -> Encode.Value
+newProductEncoder prod =
+    Encode.object
+        [ ( "name", Encode.string prod.name )
+        , ( "description", Encode.string prod.description )
+        , ( "size", Encode.int prod.size )
+        , ( "price_cents", Encode.int prod.price )
+        , ( "category", Encode.int (Category.catIdToInt prod.category) )
+        ]

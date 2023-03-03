@@ -8,7 +8,7 @@ import Html exposing (..)
 import Html.Attributes exposing (type_)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Products exposing (UserInputProduct)
+import Products exposing (Product, UserInputProduct)
 import RemoteData exposing (WebData)
 
 
@@ -20,6 +20,7 @@ type alias Model =
     , successStatus : String
     , isConfirmShowing : Bool
     }
+
 
 emptyModel : Model
 emptyModel =
@@ -144,17 +145,22 @@ showProductErrorOrButton userInput =
     case Products.userInputToProduct userInput of
         Err error ->
             div []
-                [ h3 [] [text "Input error: "]
-                , p [] [text error]
+                [ h3 [] [ text "Input error: " ]
+                , p [] [ text error ]
                 ]
-        Ok _ ->
-            p [] [text "all goods"]
-    
+
+        Ok parsedProd ->
+            div []
+                [ h3 [] [ text "Input ok" ]
+                , button [ onClick (PostProduct parsedProd) ] [ text "Create" ]
+                ]
+
 
 type Msg
     = UpdatedCategory Category
     | UpdatedProduct UserInputProduct
     | Submit
+    | PostProduct Product
     | ToggleConfirm Bool
     | Delete (Maybe Category.CategoryId)
     | ServerFeedback String (Result Http.Error String)
@@ -183,6 +189,9 @@ update msg model =
 
                 Ok cat ->
                     ( model, submitResult cat )
+
+        PostProduct prod ->
+            ( model, submitProduct prod )
 
         Delete Nothing ->
             ( { model | successStatus = "Can't delete nothing!" }, Cmd.none )
@@ -215,6 +224,15 @@ submitResult cat =
     Http.post
         { url = "http://localhost:3000/newCat"
         , body = Http.jsonBody (Category.newCatEncoder cat)
+        , expect = Http.expectString (ServerFeedback "created")
+        }
+
+
+submitProduct : Product -> Cmd Msg
+submitProduct prod =
+    Http.post
+        { url = "http://localhost:3000/newProd"
+        , body = Http.jsonBody (Products.newProductEncoder prod)
         , expect = Http.expectString (ServerFeedback "created")
         }
 
