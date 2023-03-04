@@ -6,7 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (type_)
 import Html.Events exposing (onCheck)
 import Http
-import Products exposing (Product, productsDecoder)
+import Products exposing (Product, getProductsById)
 import RemoteData exposing (WebData)
 
 
@@ -135,14 +135,6 @@ viewProd units product =
 -- update function
 
 
-getProducts : CategoryId -> Cmd Msg
-getProducts catId =
-    Http.get
-        { url = "http://localhost:3000/menu/" ++ (String.fromInt <| Category.catIdToInt catId)
-        , expect = Http.expectJson (RemoteData.fromResult >> GotProducts catId) productsDecoder
-        }
-
-
 type Msg
     = GotProducts CategoryId (WebData (List Product))
     | GotCats (WebData (List Category))
@@ -195,6 +187,4 @@ updateSections sections =
 
 updateSection : Section -> Cmd Msg
 updateSection section =
-    getProducts section.category.id
-
-
+    getProductsById GotProducts section.category.id

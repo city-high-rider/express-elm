@@ -1,9 +1,11 @@
 module Products exposing (..)
 
 import Category exposing (CategoryId, catIdDecoder)
+import Http
 import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import RemoteData exposing (WebData)
 
 
 type alias Product =
@@ -124,3 +126,15 @@ newProductEncoder prod =
         , ( "price_cents", Encode.int prod.price )
         , ( "category", Encode.int (Category.catIdToInt prod.category) )
         ]
+
+
+
+-- requests
+
+
+getProductsById : (Category.CategoryId -> WebData (List Product) -> msg) -> CategoryId -> Cmd msg
+getProductsById msg catId =
+    Http.get
+        { url = "http://localhost:3000/menu/" ++ (String.fromInt <| Category.catIdToInt catId)
+        , expect = Http.expectJson (RemoteData.fromResult >> msg catId) productsDecoder
+        }
