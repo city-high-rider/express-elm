@@ -70,6 +70,16 @@ userInputToProduct userInput =
             Err "Not enough information"
 
 
+prodToString : Product -> UserInputProduct
+prodToString prod =
+    UserInputProduct
+        prod.name
+        prod.description
+        (String.fromInt prod.size)
+        (String.fromInt prod.price)
+        (Category.catIdToString prod.category)
+
+
 allOk : List (Result e a) -> Result e (List a)
 allOk toCheck =
     let
@@ -137,4 +147,12 @@ getProductsById msg catId =
     Http.get
         { url = "http://localhost:3000/menu/" ++ (String.fromInt <| Category.catIdToInt catId)
         , expect = Http.expectJson (RemoteData.fromResult >> msg catId) productsDecoder
+        }
+
+
+getProducts : (WebData (List Product) -> msg) -> Cmd msg
+getProducts msg =
+    Http.get
+        { url = "http://localhost:3000/products"
+        , expect = Http.expectJson (RemoteData.fromResult >> msg) productsDecoder
         }

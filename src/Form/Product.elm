@@ -103,3 +103,8 @@ updateCategory oldProd newCat =
     { oldProd | category = newCat }
 
 
+prodsToOptions : List Product -> List (Html msg)
+prodsToOptions prods =
+    List.map (\p -> option [ value <| String.fromInt p.id ] [ text p.name ]) prods
+
+

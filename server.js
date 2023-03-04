@@ -27,6 +27,13 @@ app.get('/menu/:category', (req, res) => {
     })
 })
 
+app.get('/products', (req, res) => {
+    db.all("SELECT * FROM product", [], (err, rows) => {
+        console.log(err)
+        res.json(rows)
+    })
+})
+
 app.get('/categories', (req, res) => {
     db.all("SELECT * FROM category", (err, rows) => {
         console.log(err)
