@@ -13,29 +13,32 @@ import Requests exposing (deleteCat, submitResult, updateCat)
 
 
 type alias Model =
-    { catToSubmit : Category
-    , catToDelete : Maybe Category.CategoryId
-    , editingCat : Maybe Category
-    , availableCats : WebData (List Category)
-    , successStatus : String
-    , isConfirmShowing : Bool
+    { availableCats : WebData (List Category)
+    , workingCat : WorkingCategory
+    , userAction : Action
+    , status : String
     }
+
+
+type WorkingCategory
+    = NotSelected
+    | Selected Category
 
 
 type Action
     = Editing
     | Creating
+    | Deleting Bool
+    | NotPicked
 
 
 emptyModel : Model
 emptyModel =
     Model
-        Category.empty
-        Nothing
-        Nothing
         RemoteData.Loading
-        "Waiting for input..."
-        False
+        NotSelected
+        NotPicked
+        ""
 
 
 init : ( Model, Cmd Msg )
@@ -67,28 +70,66 @@ view model =
             viewLoaded model cats
 
 
-viewLoaded : Model -> List Category -> Html Msg
-viewLoaded model cats =
+viewChoices : Html Msg
+viewChoices =
     div []
-        [ h2 [] [ text "Create a category" ]
-        , categoryForm model.catToSubmit
-        , h2 [] [ text "Edit a category" ]
-        , editSection model.editingCat cats
-        , h2 [] [ text "Remove a category" ]
-        , div []
-            [ deleteForm cats
-            , confirmDelete model.catToDelete model.isConfirmShowing
-            ]
-        , p [] [ text model.successStatus ]
+        [ h2 [] [ text "What would you like to do?" ]
+        , button [ onClick (ChangeAction Creating) ] [ text "Create a category" ]
+        , button [ onClick (ChangeAction Editing) ] [ text "Edit a category" ]
+        , button [ onClick (ChangeAction (Deleting False)) ] [ text "Remove a category" ]
         ]
 
 
-categoryForm : Category -> Html Msg
-categoryForm toSubmit =
+showRelevantForm : Model -> List Category -> Html Msg
+showRelevantForm model cats =
+    case model.userAction of
+        NotPicked ->
+            p [] [ text "Give me something to do !" ]
+
+        Creating ->
+            div []
+                [ h2 [] [ text "Create a category" ]
+                , categoryForm model.workingCat
+                ]
+
+        Editing ->
+            div []
+                [ h2 [] [ text "Edit a category" ]
+                , editSection model.workingCat cats
+                ]
+
+        Deleting isConfirmShowing ->
+            div []
+                [ h2 [] [ text "Remove a category" ]
+                , deleteForm cats
+                , confirmDelete model.workingCat isConfirmShowing
+                ]
+
+
+viewLoaded : Model -> List Category -> Html Msg
+viewLoaded model cats =
+    div []
+        [ viewChoices
+        , showRelevantForm model cats
+        , p [] [ text model.status ]
+        ]
+
+
+categoryForm : WorkingCategory -> Html Msg
+categoryForm workingCat =
+    let
+        cat =
+            case workingCat of
+                NotSelected ->
+                    Category.empty
+
+                Selected c ->
+                    c
+    in
     Html.form []
-        [ Form.Category.categoryForm toSubmit (UpdatedCategory Creating)
+        [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
         , div []
-            [ button [ type_ "button", onClick (Submit Creating toSubmit) ]
+            [ button [ type_ "button", onClick (Submit Creating cat) ]
                 [ text "Create" ]
             ]
         ]
@@ -97,81 +138,76 @@ categoryForm toSubmit =
 deleteForm : List Category -> Html Msg
 deleteForm cats =
     Html.form []
-        [ div []
-            [ select [ onInput ClickedCat ]
-                (option [ value "Nothing" ] [ text "select..." ] :: Form.Category.catsToOptions cats)
-            ]
+        [ pickCatFromIdList cats
         , div []
-            [ button [ type_ "button", onClick (ToggleConfirm True) ]
+            [ button [ type_ "button", onClick (ChangeAction (Deleting True)) ]
                 [ text "Delete" ]
             ]
         ]
 
 
-confirmDelete : Maybe Category.CategoryId -> Bool -> Html Msg
-confirmDelete toDelete isShowing =
+confirmDelete : WorkingCategory -> Bool -> Html Msg
+confirmDelete workingCat isShowing =
     if not isShowing then
         div [] []
 
     else
-        div []
-            [ p [] [ text "Are you sure?" ]
-            , button [ onClick (ToggleConfirm False) ] [ text "No!" ]
-            , button [ onClick (Delete toDelete) ] [ text "Yes!" ]
-            ]
+        case workingCat of
+            NotSelected ->
+                h3 [] [ text "pick something to delete first!" ]
+
+            Selected cat ->
+                div []
+                    [ p [] [ text "Are you sure?" ]
+                    , button [ onClick (ChangeAction (Deleting False)) ] [ text "No!" ]
+                    , button [ onClick (Delete cat) ] [ text "Yes!" ]
+                    ]
 
 
-editSection : Maybe Category -> List Category -> Html Msg
+editSection : WorkingCategory -> List Category -> Html Msg
 editSection editingCat cats =
     div []
-        [ pickCatToEdit cats
+        [ pickCatFromIdList cats
         , showEditFormOrNothing editingCat
         ]
 
 
-pickCatToEdit : List Category -> Html Msg
-pickCatToEdit cats =
-    select [ onInput (SelectedToEdit cats) ] (Form.Category.catsToOptions cats)
+pickCatFromIdList : List Category -> Html Msg
+pickCatFromIdList cats =
+    select [ onInput (ChangeWorkingCat << getCatById cats) ]
+        (option [ value "Nothing" ] [ text "select..." ] :: Form.Category.catsToOptions cats)
 
 
-showEditFormOrNothing : Maybe Category -> Html Msg
-showEditFormOrNothing mCat =
-    case mCat of
-        Nothing ->
-            p [] [ text "Pick a category to edit" ]
+showEditFormOrNothing : WorkingCategory -> Html Msg
+showEditFormOrNothing workingCat =
+    case workingCat of
+        NotSelected ->
+            h3 [] [ text "pick a category to edit!" ]
 
-        Just cat ->
+        Selected cat ->
             div []
-                [ Form.Category.categoryForm cat (UpdatedCategory Editing)
+                [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
                 , button [ onClick (Submit Editing cat) ] [ text "Edit" ]
                 ]
 
 
 type Msg
-    = UpdatedCategory Action Category
+    = ChangeWorkingCat WorkingCategory
     | Submit Action Category
-    | ToggleConfirm Bool
-    | Delete (Maybe Category.CategoryId)
+    | Delete Category
     | ServerFeedback String (Result Http.Error String)
-    | ClickedCat String
-    | SelectedToEdit (List Category) String
     | GotCats (WebData (List Category))
+    | ChangeAction Action
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdatedCategory Creating newcat ->
-            ( { model | catToSubmit = newcat }, Cmd.none )
+        ChangeWorkingCat newcat ->
+            ( { model | workingCat = newcat }, Cmd.none )
 
-        UpdatedCategory Editing newcat ->
-            ( { model | editingCat = Just newcat }, Cmd.none )
-
-        ClickedCat str ->
-            ( { model | catToDelete = Maybe.map Category.intToCatId (String.toInt str) }, Cmd.none )
-
-        SelectedToEdit cats str ->
-            ( { model | editingCat = getCatById str cats }, Cmd.none )
+        ChangeAction newAction ->
+            ( { model | userAction = newAction, workingCat = NotSelected }, Cmd.none )
 
         Submit action category ->
             let
@@ -184,29 +220,26 @@ update msg model =
             in
             case Category.verifyCat category of
                 Err error ->
-                    ( { model | successStatus = "Error! : " ++ error }, Cmd.none )
+                    ( { model | status = "Error! : " ++ error }, Cmd.none )
 
                 Ok cat ->
                     ( model, request ServerFeedback cat )
 
-        Delete Nothing ->
-            ( { model | successStatus = "Can't delete nothing!" }, Cmd.none )
-
-        Delete (Just id) ->
-            ( model, deleteCat ServerFeedback id )
+        Delete cat ->
+            ( model, deleteCat ServerFeedback cat.id )
 
         ServerFeedback action result ->
-            ( { emptyModel | successStatus = createSuccessMessage result action }
+            ( { emptyModel | status = createSuccessMessage result action }
             , getCategories GotCats
             )
 
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
 
-        ToggleConfirm s ->
-            ( { model | isConfirmShowing = s }, Cmd.none )
 
-
-getCatById : String -> List Category -> Maybe Category
-getCatById idString cats =
-    List.head <| List.filter (\c -> Category.catIdToString c.id == idString) cats
+getCatById : List Category -> String -> WorkingCategory
+getCatById cats idString =
+    List.filter (\c -> Category.catIdToString c.id == idString) cats
+        |> List.head
+        |> Maybe.map Selected
+        |> Maybe.withDefault NotSelected
