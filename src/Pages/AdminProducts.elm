@@ -15,6 +15,7 @@ import Requests
 
 type alias Model =
     { workingProduct : UserInputProduct
+    , toDelete : Maybe Int
     , availableCats : WebData (List Category)
     , availableProds : WebData (List Product)
     , action : Action
@@ -40,6 +41,7 @@ emptyModel : Model
 emptyModel =
     Model
         Products.empty
+        Nothing
         RemoteData.Loading
         RemoteData.Loading
         NotPicked
@@ -99,14 +101,47 @@ showForms model cats prods =
         Editing ->
             editingForm model.workingProduct cats prods
 
-        Deleting _ ->
-            h3 [] [ text "todo" ]
+        Deleting isConfirmShowing ->
+            div []
+                [ h2 [] [ text "Remove a category" ]
+                , deleteForm prods
+                , confirmDelete model.toDelete isConfirmShowing
+                ]
+
+
+deleteForm : List Product -> Html Msg
+deleteForm prods =
+    div []
+        [ h3 [] [ text "Product to delete:" ]
+        , select [ onInput (UpdatedToDelete << String.toInt) ]
+            (option [ value "" ] [ text "Select.." ] :: prodsToOptions prods)
+        , button [ onClick <| ShowConfirmBox True ] [ text "Delete" ]
+        ]
+
+
+confirmDelete : Maybe Int -> Bool -> Html Msg
+confirmDelete input isShowing =
+    if not isShowing then
+        div [] []
+
+    else
+        case input of
+            Nothing ->
+                h3 [] [ text "Can't delete nothing!" ]
+
+            Just id ->
+                div []
+                    [ p [] [ text "Are you sure?" ]
+                    , button [ onClick <| ShowConfirmBox False ] [ text "No!" ]
+                    , button [ onClick <| Delete id ] [ text "Yes!" ]
+                    ]
 
 
 editingForm : UserInputProduct -> List Category -> List Product -> Html Msg
 editingForm uInput cats prods =
     div []
-        [ selectProductArea prods
+        [ h2 [] [ text "Edit a product" ]
+        , selectProductArea prods
         , showEditOrNothing cats uInput
         ]
 
@@ -168,8 +203,11 @@ type Msg
     | GotProds (WebData (List Product))
     | ChangeAction Action
     | UpdatedProduct UserInputProduct
+    | UpdatedToDelete (Maybe Int)
     | PostProduct Action Product
+    | Delete Int
     | ServerFeedback String (Result Http.Error String)
+    | ShowConfirmBox Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -187,6 +225,9 @@ update msg model =
         UpdatedProduct newProd ->
             ( { model | workingProduct = newProd }, Cmd.none )
 
+        UpdatedToDelete maybeId ->
+            ( { model | toDelete = maybeId }, Cmd.none )
+
         PostProduct Creating prod ->
             ( model, Requests.submitProduct ServerFeedback prod )
 
@@ -197,3 +238,9 @@ update msg model =
             ( { emptyModel | status = createSuccessMessage result action }
             , Category.getCategories GotCats
             )
+
+        Delete id ->
+            (model, Cmd.none)
+
+        ShowConfirmBox isShowing ->
+            ( { model | action = Deleting isShowing }, Cmd.none )
