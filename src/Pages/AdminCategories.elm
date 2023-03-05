@@ -140,7 +140,7 @@ deleteForm cats =
     Html.form []
         [ pickCatFromIdList cats
         , div []
-            [ button [ type_ "button", onClick (ChangeAction (Deleting True)) ]
+            [ button [ type_ "button", onClick (ToggleDeleteConfirm True) ]
                 [ text "Delete" ]
             ]
         ]
@@ -159,7 +159,7 @@ confirmDelete workingCat isShowing =
             Selected cat ->
                 div []
                     [ p [] [ text "Are you sure?" ]
-                    , button [ onClick (ChangeAction (Deleting False)) ] [ text "No!" ]
+                    , button [ onClick (ToggleDeleteConfirm False) ] [ text "No!" ]
                     , button [ onClick (Delete cat) ] [ text "Yes!" ]
                     ]
 
@@ -198,6 +198,7 @@ type Msg
     | ServerFeedback String (Result Http.Error String)
     | GotCats (WebData (List Category))
     | ChangeAction Action
+    | ToggleDeleteConfirm Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -235,6 +236,9 @@ update msg model =
 
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
+
+        ToggleDeleteConfirm showing ->
+            ( { model | userAction = Deleting showing }, Cmd.none )
 
 
 getCatById : List Category -> String -> WorkingCategory
