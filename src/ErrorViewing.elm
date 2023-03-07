@@ -1,21 +1,28 @@
-module ErrorViewing exposing (viewHttpError)
-import Http
+module ErrorViewing exposing (viewHttpError, httpErrorToString)
+
 import Html exposing (Html, p, text)
+import Http
+
 
 viewHttpError : Http.Error -> Html msg
 viewHttpError err =
-    case err of 
+    p [] [ text <| httpErrorToString err ]
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString err =
+    case err of
         Http.BadUrl s ->
-            p [] [text s]
+            s
 
         Http.Timeout ->
-            p [] [text "time out"]
+            "Time out"
 
         Http.NetworkError ->
-            p [] [text "network error"]
+            "Network error"
 
         Http.BadStatus s ->
-            p [] [text (String.fromInt s)]
+            "Bad status :" ++ String.fromInt s
 
         Http.BadBody s ->
-            p [] [text s]
+            "Bad body :" ++ s

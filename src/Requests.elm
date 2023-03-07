@@ -14,12 +14,38 @@ submitResult msg cat =
         }
 
 
-submitProduct : (String -> Result Http.Error String -> msg) -> Product -> Cmd msg
+submitProduct : (Result Http.Error String -> msg) -> Product -> Cmd msg
 submitProduct msg prod =
     Http.post
         { url = "http://localhost:3000/newProd"
         , body = Http.jsonBody (Products.newProductEncoder prod)
-        , expect = Http.expectString (msg "created product")
+        , expect = Http.expectString msg
+        }
+
+
+removeProduct : (Result Http.Error String -> msg) -> Int -> Cmd msg
+removeProduct msg id =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = "http://localhost:3000/deleteProd/" ++ String.fromInt id
+        , body = Http.emptyBody
+        , expect = Http.expectString msg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+editProduct : (Result Http.Error String -> msg) -> Product -> Int -> Cmd msg
+editProduct msg newProd id =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = "http://localhost:3000/updateProd/" ++ String.fromInt id
+        , body = Http.jsonBody (Products.newProductEncoder newProd)
+        , expect = Http.expectString msg
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 

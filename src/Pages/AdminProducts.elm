@@ -1,33 +1,34 @@
 module Pages.AdminProducts exposing (..)
 
 import Category exposing (Category, getCategories)
-import ErrorViewing exposing (viewHttpError)
-import Form.Product exposing (prodsToOptions)
-import Html exposing (Html, button, div, h2, h3, option, p, select, text)
-import Html.Attributes exposing (value)
+import ErrorViewing exposing (..)
+import Form.Product
+import Html exposing (Html, button, div, h3, option, p, select, text)
+import Html.Attributes exposing (selected, value)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Pages.AdminPageUtils exposing (createSuccessMessage)
 import Products exposing (Product, UserInputProduct, getProducts, prodToString)
 import RemoteData exposing (WebData)
 import Requests
 
 
 type alias Model =
-    { workingProduct : UserInputProduct
-    , toDelete : Maybe Int
+    { action : Action
     , availableCats : WebData (List Category)
     , availableProds : WebData (List Product)
-    , action : Action
     , status : String
     }
 
 
 type Action
-    = Creating
-    | Editing
-    | Deleting Bool
-    | NotPicked
+    = NotPicked
+    | Creating UserInputProduct
+    | Editing (Maybe UserInputWithId)
+    | Deleting Bool (Maybe Int)
+
+
+type alias UserInputWithId =
+    ( UserInputProduct, Int )
 
 
 init : ( Model, Cmd Msg )
@@ -40,207 +41,234 @@ init =
 emptyModel : Model
 emptyModel =
     Model
-        Products.empty
-        Nothing
-        RemoteData.Loading
-        RemoteData.Loading
         NotPicked
+        RemoteData.Loading
+        RemoteData.Loading
         ""
 
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ showActionButtons
-        , viewMain model
-        , h3 [] [ text model.status ]
-        ]
-
-
-showActionButtons : Html Msg
-showActionButtons =
-    div []
-        [ button [ onClick (ChangeAction Creating) ] [ text "Create a product" ]
-        , button [ onClick (ChangeAction Editing) ] [ text "Edit a product" ]
-        , button [ onClick (ChangeAction (Deleting False)) ] [ text "Delete a product" ]
-        ]
-
-
-viewMain : Model -> Html Msg
-viewMain model =
     let
-        availableStuff =
-            RemoteData.map2 (\cats prods -> ( cats, prods )) model.availableCats model.availableProds
+        serverResources =
+            RemoteData.map2 (\c p -> ( c, p )) model.availableCats model.availableProds
     in
-    case availableStuff of
+    case serverResources of
         RemoteData.NotAsked ->
-            h2 [] [ text "Developer forgot to send http request" ]
+            h3 [] [ text "The developer forgot to request resources from server!" ]
 
         RemoteData.Loading ->
-            h2 [] [ text "Loading... please wait!" ]
+            h3 [] [ text "Getting data from the server... please wait!" ]
 
-        RemoteData.Failure error ->
+        RemoteData.Failure err ->
             div []
-                [ h3 [] [ text "Error:" ]
-                , viewHttpError error
+                [ h3 [] [ text "Unable to get data from the server!" ]
+                , viewHttpError err
                 ]
 
         RemoteData.Success ( cats, prods ) ->
-            showForms model cats prods
+            div []
+                [ showButtons
+                , showRelevantForm model.action cats prods
+                , p [] [ text model.status ]
+                ]
 
 
-showForms : Model -> List Category -> List Product -> Html Msg
-showForms model cats prods =
-    case model.action of
+showButtons : Html Msg
+showButtons =
+    div []
+        [ button [ onClick <| NewAction <| Creating Products.empty ] [ text "Create new product" ]
+        , button [ onClick <| NewAction <| Editing Nothing ] [ text "Edit a product" ]
+        , button [ onClick <| NewAction <| Deleting False Nothing ] [ text "Remove a product" ]
+        ]
+
+
+showRelevantForm : Action -> List Category -> List Product -> Html Msg
+showRelevantForm action cats prods =
+    case action of
         NotPicked ->
             h3 [] [ text "Give me something to do!" ]
 
-        Creating ->
-            createProductForm model.workingProduct cats
+        Creating uInput ->
+            creatingForm uInput cats
 
-        Editing ->
-            editingForm model.workingProduct cats prods
+        Editing maybeStuff ->
+            viewEditStuff maybeStuff cats prods
 
-        Deleting isConfirmShowing ->
-            div []
-                [ h2 [] [ text "Remove a category" ]
-                , deleteForm prods
-                , confirmDelete model.toDelete isConfirmShowing
-                ]
+        Deleting isConfirmShowing maybeId ->
+            viewDeleteStuff isConfirmShowing maybeId prods
 
 
-deleteForm : List Product -> Html Msg
-deleteForm prods =
+creatingForm : UserInputProduct -> List Category -> Html Msg
+creatingForm uInput cats =
     div []
-        [ h3 [] [ text "Product to delete:" ]
-        , select [ onInput (UpdatedToDelete << String.toInt) ]
-            (option [ value "" ] [ text "Select.." ] :: prodsToOptions prods)
-        , button [ onClick <| ShowConfirmBox True ] [ text "Delete" ]
+        [ h3 [] [ text "Create a product" ]
+        , Form.Product.productForm cats uInput UpdateUserInput
+        , submitButton uInput CreateProduct
         ]
 
 
-confirmDelete : Maybe Int -> Bool -> Html Msg
-confirmDelete input isShowing =
-    if not isShowing then
-        div [] []
-
-    else
-        case input of
-            Nothing ->
-                h3 [] [ text "Can't delete nothing!" ]
-
-            Just id ->
-                div []
-                    [ p [] [ text "Are you sure?" ]
-                    , button [ onClick <| ShowConfirmBox False ] [ text "No!" ]
-                    , button [ onClick <| Delete id ] [ text "Yes!" ]
-                    ]
-
-
-editingForm : UserInputProduct -> List Category -> List Product -> Html Msg
-editingForm uInput cats prods =
-    div []
-        [ h2 [] [ text "Edit a product" ]
-        , selectProductArea prods
-        , showEditOrNothing cats uInput
-        ]
-
-
-selectProductArea : List Product -> Html Msg
-selectProductArea prods =
-    select [ onInput (UpdatedProduct << getProductById prods) ]
-        (option [ value "" ] [ text "Select.." ] :: prodsToOptions prods)
-
-
-showEditOrNothing : List Category -> UserInputProduct -> Html Msg
-showEditOrNothing cats uInput =
-    if uInput == Products.empty then
-        p [] [ text "pick something to edit!" ]
-
-    else
-        div []
-            [ Form.Product.productForm cats uInput UpdatedProduct
-            , showProductErrorOrButton Editing uInput
-            ]
-
-
-getProductById : List Product -> String -> UserInputProduct
-getProductById prods id =
-    case List.head <| List.filter (\p -> String.fromInt p.id == id) prods of
-        Nothing ->
-            Products.empty
-
-        Just p ->
-            prodToString p
-
-
-createProductForm : UserInputProduct -> List Category -> Html Msg
-createProductForm workingProduct cats =
-    div []
-        [ Form.Product.productForm cats workingProduct UpdatedProduct
-        , showProductErrorOrButton Creating workingProduct
-        ]
-
-
-showProductErrorOrButton : Action -> UserInputProduct -> Html Msg
-showProductErrorOrButton action userInput =
+submitButton : UserInputProduct -> (Product -> msg) -> Html msg
+submitButton userInput msg =
     case Products.userInputToProduct userInput of
-        Err error ->
+        Err e ->
+            h3 [] [ text <| "Error: " ++ e ]
+
+        Ok p ->
+            button [ onClick (msg p) ] [ text "Submit" ]
+
+
+viewEditStuff : Maybe UserInputWithId -> List Category -> List Product -> Html Msg
+viewEditStuff maybeStuff cats prods =
+    div []
+        [ h3 [] [ text "Edit a product" ]
+        , pickAProduct prods (UpdatedEdit << pickProductByStringId prods)
+        , showEditInput maybeStuff cats
+        ]
+
+
+pickAProduct : List Product -> (String -> msg) -> Html msg
+pickAProduct prods msg =
+    select [ onInput msg ]
+        (option [ value "Nothing", selected True ] [ text "Select..." ] :: Form.Product.prodsToOptions prods)
+
+
+pickProductByStringId : List Product -> String -> Maybe Product
+pickProductByStringId prods stringId =
+    List.filter (\p -> String.fromInt p.id == stringId) prods
+        |> List.head
+
+
+showEditInput : Maybe UserInputWithId -> List Category -> Html Msg
+showEditInput maybeUserInput cats =
+    case maybeUserInput of
+        Nothing ->
+            h3 [] [ text "Pick something to edit!" ]
+
+        Just ( uInput, id ) ->
             div []
-                [ h3 [] [ text "Input error: " ]
-                , p [] [ text error ]
+                [ Form.Product.productForm cats uInput UpdateUserInput
+                , submitButton uInput (Edit id)
                 ]
 
-        Ok parsedProd ->
+
+viewDeleteStuff : Bool -> Maybe Int -> List Product -> Html Msg
+viewDeleteStuff isConfirmShowing maybeId prods =
+    div []
+        [ h3 [] [ text "Delete a product" ]
+        , pickAProduct prods (UpdatedDelete << pickProductByStringId prods)
+        , showDeleteButton isConfirmShowing maybeId
+        ]
+
+
+showDeleteButton : Bool -> Maybe Int -> Html Msg
+showDeleteButton isConfirmShowing maybeId =
+    case maybeId of
+        Nothing ->
+            h3 [] [ text "Pick something to delete!" ]
+
+        Just id ->
+            let
+                displayButton =
+                    if isConfirmShowing then
+                        div []
+                            [ h3 [] [ text "Are you sure?" ]
+                            , button [ onClick <| ToggleConfirm False ] [ text "No!" ]
+                            , button [ onClick <| Delete id ] [ text "Yes!" ]
+                            ]
+
+                    else
+                        div [] []
+            in
             div []
-                [ h3 [] [ text "Input ok" ]
-                , button [ onClick (PostProduct action parsedProd) ] [ text "Submit" ]
+                [ button [ onClick <| ToggleConfirm True ] [ text "Delete!" ]
+                , displayButton
                 ]
 
 
 type Msg
     = GotCats (WebData (List Category))
     | GotProds (WebData (List Product))
-    | ChangeAction Action
-    | UpdatedProduct UserInputProduct
-    | UpdatedToDelete (Maybe Int)
-    | PostProduct Action Product
+    | NewAction Action
+    | UpdateUserInput UserInputProduct
+    | UpdatedEdit (Maybe Product)
+    | UpdatedDelete (Maybe Product)
+    | CreateProduct Product
+    | Edit Int Product
     | Delete Int
-    | ServerFeedback String (Result Http.Error String)
-    | ShowConfirmBox Bool
+    | ToggleConfirm Bool
+    | Feedback (Result Http.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ChangeAction newAction ->
-            ( { model | action = newAction, workingProduct = Products.empty }, Cmd.none )
-
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
 
         GotProds prods ->
             ( { model | availableProds = prods }, Cmd.none )
 
-        UpdatedProduct newProd ->
-            ( { model | workingProduct = newProd }, Cmd.none )
+        NewAction newAction ->
+            ( { model | action = newAction }, Cmd.none )
 
-        UpdatedToDelete maybeId ->
-            ( { model | toDelete = maybeId }, Cmd.none )
+        UpdateUserInput newInput ->
+            case model.action of
+                Creating _ ->
+                    ( { model | action = Creating newInput }, Cmd.none )
 
-        PostProduct Creating prod ->
-            ( model, Requests.submitProduct ServerFeedback prod )
+                Editing (Just ( _, oldId )) ->
+                    ( { model | action = Editing <| Just ( newInput, oldId ) }, Cmd.none )
 
-        PostProduct _ _ ->
-            ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
-        ServerFeedback action result ->
-            ( { emptyModel | status = createSuccessMessage result action }
-            , Category.getCategories GotCats
-            )
+        UpdatedEdit newProduct ->
+            case newProduct of
+                Nothing ->
+                    ( { model | action = Editing Nothing }, Cmd.none )
+
+                Just prod ->
+                    ( { model | action = Editing <| Just ( Products.prodToString prod, prod.id ) }, Cmd.none )
+
+        UpdatedDelete newProduct ->
+            case newProduct of
+                Nothing ->
+                    ( { model | action = Deleting False Nothing }, Cmd.none )
+
+                Just prod ->
+                    ( { model | action = Deleting False <| Just prod.id }, Cmd.none )
+
+        CreateProduct prod ->
+            ( model, Requests.submitProduct Feedback prod )
+
+        Edit id newContent ->
+            ( model, Requests.editProduct Feedback newContent id )
 
         Delete id ->
-            (model, Cmd.none)
+            ( model, Requests.removeProduct Feedback id )
 
-        ShowConfirmBox isShowing ->
-            ( { model | action = Deleting isShowing }, Cmd.none )
+        ToggleConfirm state ->
+            case model.action of
+                Deleting _ id ->
+                    ( { model | action = Deleting state id }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        Feedback f ->
+            case f of
+                Err e ->
+                    ( { model | status = httpErrorToString e }, Cmd.none )
+
+                Ok m ->
+                    refreshModel m
+
+
+refreshModel : String -> ( Model, Cmd Msg )
+refreshModel status =
+    let
+        ( mdl, cmds ) =
+            init
+    in
+    ( { mdl | status = status }, cmds )
