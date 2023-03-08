@@ -73,6 +73,36 @@ app.delete('/deleteCat/:id', (req, res) => {
     })
 })
 
+app.delete('/deleteProd/:id', (req, res) => {
+    db.run("DELETE FROM product WHERE id = ?", [req.params.id], (err) => {
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("Success")
+    })
+})
+
+app.post('/updateCat/:id', (req, res) => {
+    db.run("UPDATE category SET name=?, sizeunits=? WHERE id=?", [req.body.name, req.body.units, req.params.id], (err) => {
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("Successfully updated category")
+    })
+})
+
+app.post('/updateProd/:id', (req, res) => {
+    db.run("UPDATE product SET name=?, description=?, size=?, category=?, price_cents=?  WHERE id=?", [req.body.name, req.body.description, req.body.size, req.body.category, req.body.price_cents, req.params.id], (err) => {
+        if (err) {
+            console.log(err)
+            return
+        }
+        res.send("Successfully updated category")
+    })
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
