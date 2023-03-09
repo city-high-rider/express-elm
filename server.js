@@ -5,6 +5,8 @@ const port = 3000
 
 const db = new sqlite3.Database("./coffee.db")
 
+const super_secret_password = "cheese"
+
 // Add headers to work with elm-live
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8000');
@@ -101,6 +103,18 @@ app.post('/updateProd/:id', (req, res) => {
         }
         res.send("Successfully updated category")
     })
+})
+
+app.post('/checkPass/:pass', (req, res) => {
+    if (req.params.pass == super_secret_password) {
+        console.log("successful log in")
+        res.send("success")
+        res.status(200)
+    } else {
+        res.status(403)
+        res.send("Failure")
+    }
+
 })
 
 app.listen(port, () => {

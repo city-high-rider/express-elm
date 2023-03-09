@@ -73,3 +73,12 @@ updateCat msg cat =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+checkPassword : (Result Http.Error String -> msg) -> String -> Cmd msg
+checkPassword msg pass =
+    Http.post
+        { url = "http://localhost:3000/checkPass/" ++ pass
+        , body = Http.emptyBody
+        , expect = Http.expectString msg
+        }

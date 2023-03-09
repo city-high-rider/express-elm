@@ -6,6 +6,7 @@ import Html exposing (Html, div, h2, p, text)
 import Pages.AdminCategories as CategoriesPageFile
 import Pages.AdminProducts as ProductsPageFile
 import Pages.Home as HomePageFile
+import Pages.LoginPage as LoginPageFile
 import Pages.Menu as MenuPageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
@@ -27,6 +28,7 @@ type alias Model =
     { route : Route
     , page : Page
     , navKey : Nav.Key
+    , credentials : Maybe String
     }
 
 
@@ -36,6 +38,7 @@ type Page
     | Menu MenuPageFile.Model
     | CategoriesPage CategoriesPageFile.Model
     | ProductsPage ProductsPageFile.Model
+    | LoginPage LoginPageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -45,6 +48,7 @@ init _ url navKey =
             { route = Route.parseUrl url
             , page = NotFoundPage
             , navKey = navKey
+            , credentials = Nothing
             }
     in
     initCurrentPage ( model, Cmd.none )
@@ -81,6 +85,13 @@ initCurrentPage ( model, initialCmds ) =
                             ProductsPageFile.init
                     in
                     ( ProductsPage prodModel, Cmd.map ProdMsg prodCmds )
+
+                LoginRoute ->
+                    let
+                        ( iModel, iCmds ) =
+                            LoginPageFile.init
+                    in
+                    ( LoginPage iModel, Cmd.map LoginMsg iCmds )
     in
     ( { model | page = currentPage }
     , Cmd.batch [ initialCmds, mappedCmds ]
@@ -112,6 +123,9 @@ currentView model =
         ProductsPage prodModel ->
             Html.map ProdMsg (ProductsPageFile.view prodModel)
 
+        LoginPage lModel ->
+            Html.map LoginMsg (LoginPageFile.view lModel)
+
 
 notFoundView : Html Msg
 notFoundView =
@@ -126,6 +140,7 @@ type Msg
     | MenuMsg MenuPageFile.Msg
     | CatMsg CategoriesPageFile.Msg
     | ProdMsg ProductsPageFile.Msg
+    | LoginMsg LoginPageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -171,6 +186,15 @@ update msg model =
             in
             ( { model | page = ProductsPage newModel }
             , Cmd.map ProdMsg cmds
+            )
+
+        ( LoginMsg lMsg, LoginPage lModel ) ->
+            let
+                ( newModel, cmds, pass ) =
+                    LoginPageFile.update lMsg lModel
+            in
+            ( { model | page = LoginPage newModel, credentials = pass }
+            , Cmd.map LoginMsg cmds
             )
 
         ( _, _ ) ->

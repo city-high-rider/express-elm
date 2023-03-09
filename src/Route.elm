@@ -11,6 +11,7 @@ type Route
     | MenuRoute 
     | AdminCategories
     | AdminProducts
+    | LoginRoute
 
 
 parseUrl : Url -> Route
@@ -26,4 +27,5 @@ routeParser =
         , map MenuRoute (s "menu")
         , map AdminCategories (s "adminCategories")
         , map AdminProducts (s "adminProducts")
+        , map LoginRoute (s "login")
         ]
