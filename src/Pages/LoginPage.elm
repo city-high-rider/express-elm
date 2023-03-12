@@ -5,17 +5,20 @@ import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
 import Requests exposing (checkPassword)
 import Http
+import RemoteData exposing (WebData)
+import ServerResponse exposing (ServerResponse, responseToString)
+import ErrorViewing exposing (httpErrorToString)
 
 
 type alias Model =
     { input : String
-    , status : String
+    , status : WebData ServerResponse
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model "" ""
+    ( Model "" RemoteData.NotAsked
     , Cmd.none
     )
 
@@ -29,15 +32,32 @@ view model =
         , br [] []
         , button [onClick Logout] [text "Log out"]
         , br [] []
-        , p [] [ text model.status ]
+        , showModelStatus model.status
         ]
 
+
+showModelStatus : WebData ServerResponse -> Html Msg
+showModelStatus webR =
+    case webR of
+        RemoteData.NotAsked ->
+            p [] [text "You haven't done anything yet"]
+
+        RemoteData.Loading ->
+            p [] [text "Loading... please wait"]
+
+        RemoteData.Failure err ->
+            p [] [text "Failed to reach the server : " ++ httpErrorToString err]
+
+        RemoteData.Success r ->
+            p [] [text <| responseToString r]
+
+    
 
 type Msg
     = ChangedInput String
     | Submit
     | Logout
-    | ServerResponse (Result Http.Error String)
+    | Reply (WebData ServerResponse)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe String )
@@ -47,13 +67,10 @@ update msg model =
             ( { model | input = newInput }, Cmd.none, Nothing )
 
         Submit ->
-            ( model, checkPassword (ServerResponse) model.input, Nothing )
+            ( model, checkPassword ( RemoteData.fromResult >> Reply ) model.input, Nothing )
 
-        ServerResponse (Err _) ->
-            ( { model | status = "Login failed!" }, Cmd.none, Nothing )
-
-        ServerResponse (Ok r) ->
-            ( { model | status = "Server response : " ++ r }, Cmd.none, Just model.input )
+        Reply w ->
+            ( { model | status = w}, Cmd.none, Nothing )
 
         Logout ->
-            ( {model | status = "Logged out"}, Cmd.none, Nothing)
+            ( model, Cmd.none, Nothing)

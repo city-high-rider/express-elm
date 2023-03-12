@@ -13,6 +13,15 @@ responseDecoder =
     Decode.map2 stringsToResponse (field "state" string) (field "messgage" string)
 
 
+responseToString : ServerResponse -> String
+responseToString r =
+    case r of
+        Failure s ->
+            "Action failed: " ++ s
+        Success s ->
+            s
+
+
 stringsToResponse : String -> String -> ServerResponse
 stringsToResponse state message =
     if state == "Success" then
