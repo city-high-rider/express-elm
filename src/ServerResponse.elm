@@ -10,7 +10,7 @@ type ServerResponse
 
 responseDecoder : Decode.Decoder ServerResponse
 responseDecoder =
-    Decode.map2 stringsToResponse (field "state" string) (field "messgage" string)
+    Decode.map2 stringsToResponse (field "state" string) (field "message" string)
 
 
 responseToString : ServerResponse -> String
