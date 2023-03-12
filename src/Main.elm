@@ -75,7 +75,7 @@ initCurrentPage ( model, initialCmds ) =
                 AdminCategories ->
                     let
                         ( createModel, createCmds ) =
-                            CategoriesPageFile.init
+                            CategoriesPageFile.init model.credentials
                     in
                     ( CategoriesPage createModel, Cmd.map CatMsg createCmds )
 
