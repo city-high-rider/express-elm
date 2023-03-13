@@ -1,13 +1,12 @@
 module Pages.LoginPage exposing (..)
 
-import Html exposing (Html, div, input, p, text, button, h3, br)
+import Html exposing (Html, br, button, div, h3, input, p, text)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onClick, onInput)
-import Requests exposing (checkPassword)
-import Http
+import Pages.AdminPageUtils exposing (showModelStatus)
 import RemoteData exposing (WebData)
-import ServerResponse exposing (ServerResponse, responseToString)
-import ErrorViewing exposing (httpErrorToString)
+import Requests exposing (checkPassword)
+import ServerResponse exposing (ServerResponse)
 
 
 type alias Model =
@@ -30,28 +29,11 @@ view model =
         , input [ onInput ChangedInput, type_ "text", value model.input ] []
         , button [ onClick Submit ] [ text "Enter" ]
         , br [] []
-        , button [onClick Logout] [text "Log out"]
+        , button [ onClick Logout ] [ text "Log out" ]
         , br [] []
         , showModelStatus model.status
         ]
 
-
-showModelStatus : WebData ServerResponse -> Html Msg
-showModelStatus webR =
-    case webR of
-        RemoteData.NotAsked ->
-            p [] [text "You haven't done anything yet"]
-
-        RemoteData.Loading ->
-            p [] [text "Loading... please wait"]
-
-        RemoteData.Failure err ->
-            p [] [text "Failed to reach the server : " ++ httpErrorToString err]
-
-        RemoteData.Success r ->
-            p [] [text <| responseToString r]
-
-    
 
 type Msg
     = ChangedInput String
@@ -67,10 +49,19 @@ update msg model =
             ( { model | input = newInput }, Cmd.none, Nothing )
 
         Submit ->
-            ( model, checkPassword ( RemoteData.fromResult >> Reply ) model.input, Nothing )
+            ( model, checkPassword (RemoteData.fromResult >> Reply) model.input, Nothing )
 
         Reply w ->
-            ( { model | status = w}, Cmd.none, Nothing )
+            let
+                toSubmit =
+                    case w of
+                        RemoteData.Success ( True, _ ) ->
+                            Just model.input
+
+                        _ ->
+                            Nothing
+            in
+            ( { model | status = w }, Cmd.none, toSubmit )
 
         Logout ->
-            ( model, Cmd.none, Nothing)
+            ( model, Cmd.none, Nothing )

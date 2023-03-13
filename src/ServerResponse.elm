@@ -1,30 +1,21 @@
 module ServerResponse exposing (..)
 
-import Json.Decode as Decode exposing (string, field)
+import Json.Decode as Decode exposing (bool, field, string)
 
 
-type ServerResponse
-    = Failure String
-    | Success String
+type alias ServerResponse =
+    ( Bool, String )
 
 
 responseDecoder : Decode.Decoder ServerResponse
 responseDecoder =
-    Decode.map2 stringsToResponse (field "state" string) (field "message" string)
+    Decode.map2 (\s m -> ( s, m )) (field "success" bool) (field "message" string)
 
 
 responseToString : ServerResponse -> String
-responseToString r =
-    case r of
-        Failure s ->
-            "Action failed: " ++ s
-        Success s ->
-            s
+responseToString ( s, m ) =
+    if s then
+        m
 
-
-stringsToResponse : String -> String -> ServerResponse
-stringsToResponse state message =
-    if state == "Success" then
-        Success message
-    else 
-        Failure message
+    else
+        "Action failed: " ++ m

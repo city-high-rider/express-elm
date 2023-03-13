@@ -4,19 +4,20 @@ import Category exposing (Category, getCategories)
 import ErrorViewing exposing (viewHttpError)
 import Form.Category
 import Html exposing (..)
-import Html.Attributes exposing (type_, value)
+import Html.Attributes exposing (href, type_, value)
 import Html.Events exposing (onClick, onInput)
-import Http
-import Pages.AdminPageUtils exposing (createSuccessMessage)
+import Pages.AdminPageUtils exposing (showModelStatus)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
+import ServerResponse exposing (ServerResponse)
 
 
 type alias Model =
     { availableCats : WebData (List Category)
     , workingCat : WorkingCategory
     , userAction : Action
-    , status : String
+    , status : WebData ServerResponse
+    , credentials : Maybe String
     }
 
 
@@ -38,12 +39,13 @@ emptyModel =
         RemoteData.Loading
         NotSelected
         NotPicked
-        ""
+        RemoteData.NotAsked
+        Nothing
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( emptyModel, getCategories GotCats )
+init : Maybe String -> ( Model, Cmd Msg )
+init credentials =
+    ( { emptyModel | credentials = credentials }, getCategories GotCats )
 
 
 view : Model -> Html Msg
@@ -67,7 +69,16 @@ view model =
                 ]
 
         RemoteData.Success cats ->
-            viewLoaded model cats
+            case model.credentials of
+                Nothing ->
+                    div []
+                        [ h3 [] [ text "You are not logged in!" ]
+                        , p [] [ text "You need to be logged in to change the menu." ]
+                        , a [ href "/login" ] [ text "Login page" ]
+                        ]
+
+                Just _ ->
+                    viewLoaded model cats
 
 
 viewChoices : Html Msg
@@ -111,7 +122,7 @@ viewLoaded model cats =
     div []
         [ viewChoices
         , showRelevantForm model cats
-        , p [] [ text model.status ]
+        , showModelStatus model.status
         ]
 
 
@@ -195,7 +206,7 @@ type Msg
     = ChangeWorkingCat WorkingCategory
     | Submit Action Category
     | Delete Category
-    | ServerFeedback String (Result Http.Error String)
+    | ServerFeedback (WebData ServerResponse)
     | GotCats (WebData (List Category))
     | ChangeAction Action
     | ToggleDeleteConfirm Bool
@@ -217,20 +228,23 @@ update msg model =
                         submitResult
 
                     else
-                        updateCat
+                        updateCat (Maybe.withDefault "" model.credentials)
             in
             case Category.verifyCat category of
                 Err error ->
-                    ( { model | status = "Error! : " ++ error }, Cmd.none )
+                    ( { model | status = RemoteData.succeed ( False, "Error! : " ++ error ) }, Cmd.none )
 
                 Ok cat ->
-                    ( model, request ServerFeedback cat )
+                    ( model, request (RemoteData.fromResult >> ServerFeedback) cat )
 
         Delete cat ->
-            ( model, deleteCat ServerFeedback cat.id )
+            ( model, deleteCat (RemoteData.fromResult >> ServerFeedback) cat.id )
 
-        ServerFeedback action result ->
-            ( { emptyModel | status = createSuccessMessage result action }
+        ServerFeedback feedback ->
+            ( { emptyModel
+                | status = feedback
+                , credentials = model.credentials
+              }
             , getCategories GotCats
             )
 

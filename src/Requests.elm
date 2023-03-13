@@ -20,12 +20,12 @@ expectServerResponse msg =
     Http.expectJson msg responseDecoder
 
 
-submitResult : (String -> Result Http.Error String -> msg) -> Category -> Cmd msg
+submitResult : (Result Http.Error ServerResponse -> msg) -> Category -> Cmd msg
 submitResult msg cat =
     Http.post
         { url = "http://localhost:3000/newCat"
         , body = Http.jsonBody (Category.newCatEncoder cat)
-        , expect = Http.expectString (msg "created category")
+        , expect = expectServerResponse msg
         }
 
 
@@ -64,25 +64,25 @@ editProduct msg newProd id =
         }
 
 
-deleteCat : (String -> Result Http.Error String -> msg) -> Category.CategoryId -> Cmd msg
+deleteCat : (Result Http.Error ServerResponse -> msg) -> Category.CategoryId -> Cmd msg
 deleteCat msg id =
     Http.request
         { method = "DELETE"
         , headers = []
         , url = "http://localhost:3000/deleteCat/" ++ catIdToString id
         , body = Http.emptyBody
-        , expect = Http.expectString (msg "deleted category")
+        , expect = expectServerResponse msg
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-updateCat : String -> (String -> Result Http.Error String -> msg) -> Category -> Cmd msg
+updateCat : String -> (Result Http.Error ServerResponse -> msg) -> Category -> Cmd msg
 updateCat pass msg cat =
     Http.post
         { url = "http://localhost:3000/updateCat/" ++ catIdToString cat.id
         , body = Http.jsonBody (reqWithPass (Category.newCatEncoder cat) pass)
-        , expect = Http.expectString (msg "updated category")
+        , expect = expectServerResponse msg
         }
 
 

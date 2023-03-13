@@ -47,9 +47,10 @@ app.post('/newCat', (req,res) => {
     db.run("INSERT INTO category (name, sizeunits) VALUES (?, ?)", [req.body.name, req.body.units], (err) => {
         if (err) {
             console.log(err)
+            res.json({success: false, message: "Sqlite error"})
             return
         }
-        res.send("success")
+        res.json({success: true, message: "Successfully added category"})
         res.status(201)
     })
 })
@@ -69,9 +70,10 @@ app.delete('/deleteCat/:id', (req, res) => {
     db.run("DELETE FROM category WHERE id = ?", [req.params.id], (err) => {
         if (err) {
             console.log(err)
+            res.json({success: false, message: "sqlite error"})
             return
         }
-        res.send("Success")
+        res.json({success: true, message: "Successfully deleted category"})
     })
 })
 
@@ -86,12 +88,19 @@ app.delete('/deleteProd/:id', (req, res) => {
 })
 
 app.post('/updateCat/:id', (req, res) => {
-    db.run("UPDATE category SET name=?, sizeunits=? WHERE id=?", [req.body.name, req.body.units, req.params.id], (err) => {
+    if (req.body.password != super_secret_password) {
+        res.json({success: false, message: "Incorrect password"})
+        console.log(req.body)
+        return
+    }
+    const cat = req.body.request
+    console.log(cat)
+    db.run("UPDATE category SET name=?, sizeunits=? WHERE id=?", [cat.name, cat.units, req.params.id], (err) => {
         if (err) {
-            console.log(err)
+            res.json({success: false, message: "Sqlite error"})
             return
         }
-        res.send("Successfully updated category")
+            res.json({success: true, message: "Successfully updated category"})
     })
 })
 
@@ -101,18 +110,17 @@ app.post('/updateProd/:id', (req, res) => {
             console.log(err)
             return
         }
-        res.send("Successfully updated category")
+        res.send("Successfully updated product")
     })
 })
 
 app.post('/checkPass/:pass', (req, res) => {
     if (req.params.pass == super_secret_password) {
         console.log("successful log in")
-        res.send("success")
-        res.status(200)
+        res.json({success: true, message: "Logged in"})
     } else {
-        res.status(403)
-        res.send("Failure")
+        console.log("wrongpass")
+        res.json({success: false, message: "Wrong password"})
     }
 
 })
