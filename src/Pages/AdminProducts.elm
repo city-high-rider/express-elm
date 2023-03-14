@@ -3,20 +3,22 @@ module Pages.AdminProducts exposing (..)
 import Category exposing (Category, getCategories)
 import ErrorViewing exposing (..)
 import Form.Product
-import Html exposing (Html, button, div, h3, option, p, select, text)
-import Html.Attributes exposing (selected, value)
+import Html exposing (Html, a, button, div, h3, option, p, select, text)
+import Html.Attributes exposing (href, selected, value)
 import Html.Events exposing (onClick, onInput)
-import Http
+import Pages.AdminPageUtils exposing (showModelStatus)
 import Products exposing (Product, UserInputProduct, getProducts, prodToString)
 import RemoteData exposing (WebData)
 import Requests
+import ServerResponse exposing (ServerResponse)
 
 
 type alias Model =
     { action : Action
     , availableCats : WebData (List Category)
     , availableProds : WebData (List Product)
-    , status : String
+    , status : WebData ServerResponse
+    , credentials : Maybe String
     }
 
 
@@ -31,9 +33,9 @@ type alias UserInputWithId =
     ( UserInputProduct, Int )
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( emptyModel
+init : Maybe String -> ( Model, Cmd Msg )
+init creds =
+    ( { emptyModel | credentials = creds }
     , Cmd.batch [ getCategories GotCats, getProducts GotProds ]
     )
 
@@ -44,7 +46,8 @@ emptyModel =
         NotPicked
         RemoteData.Loading
         RemoteData.Loading
-        ""
+        RemoteData.NotAsked
+        Nothing
 
 
 view : Model -> Html Msg
@@ -67,11 +70,20 @@ view model =
                 ]
 
         RemoteData.Success ( cats, prods ) ->
-            div []
-                [ showButtons
-                , showRelevantForm model.action cats prods
-                , p [] [ text model.status ]
-                ]
+            case model.credentials of
+                Nothing ->
+                    div []
+                        [ h3 [] [ text "You are not logged in!" ]
+                        , p [] [ text "so your requests will not work. Login at" ]
+                        , a [ href "/login" ] [ text "this page" ]
+                        ]
+
+                Just _ ->
+                    div []
+                        [ showButtons
+                        , showRelevantForm model.action cats prods
+                        , showModelStatus model.status
+                        ]
 
 
 showButtons : Html Msg
@@ -197,11 +209,15 @@ type Msg
     | Edit Int Product
     | Delete Int
     | ToggleConfirm Bool
-    | Feedback (Result Http.Error String)
+    | Feedback (WebData ServerResponse)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        pass = Maybe.withDefault "" model.credentials
+    in
+    
     case msg of
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
@@ -240,13 +256,13 @@ update msg model =
                     ( { model | action = Deleting False <| Just prod.id }, Cmd.none )
 
         CreateProduct prod ->
-            ( model, Requests.submitProduct Feedback prod )
+            ( model, Requests.submitProduct pass (RemoteData.fromResult >> Feedback) prod )
 
         Edit id newContent ->
-            ( model, Requests.editProduct Feedback newContent id )
+            ( model, Requests.editProduct pass (RemoteData.fromResult >> Feedback) newContent id )
 
         Delete id ->
-            ( model, Requests.removeProduct Feedback id )
+            ( model, Requests.removeProduct pass (RemoteData.fromResult >> Feedback) id )
 
         ToggleConfirm state ->
             case model.action of
@@ -257,18 +273,8 @@ update msg model =
                     ( model, Cmd.none )
 
         Feedback f ->
-            case f of
-                Err e ->
-                    ( { model | status = httpErrorToString e }, Cmd.none )
-
-                Ok m ->
-                    refreshModel m
-
-
-refreshModel : String -> ( Model, Cmd Msg )
-refreshModel status =
-    let
-        ( mdl, cmds ) =
-            init
-    in
-    ( { mdl | status = status }, cmds )
+            let
+                ( empty, cmds ) =
+                    init model.credentials
+            in
+            ( { empty | status = f }, cmds )

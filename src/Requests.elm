@@ -7,12 +7,13 @@ import Products exposing (Product)
 import ServerResponse exposing (..)
 
 
-reqWithPass : Encode.Value -> String -> Encode.Value
+reqWithPass : Encode.Value -> String -> Http.Body
 reqWithPass stuff pass =
-    Encode.object
-        [ ( "request", stuff )
-        , ( "password", Encode.string pass )
-        ]
+    Http.jsonBody <|
+        Encode.object
+            [ ( "request", stuff )
+            , ( "password", Encode.string pass )
+            ]
 
 
 expectServerResponse : (Result Http.Error ServerResponse -> msg) -> Http.Expect msg
@@ -20,57 +21,53 @@ expectServerResponse msg =
     Http.expectJson msg responseDecoder
 
 
-submitResult : (Result Http.Error ServerResponse -> msg) -> Category -> Cmd msg
-submitResult msg cat =
+submitResult : String -> (Result Http.Error ServerResponse -> msg) -> Category -> Cmd msg
+submitResult pass msg cat =
     Http.post
         { url = "http://localhost:3000/newCat"
-        , body = Http.jsonBody (Category.newCatEncoder cat)
+        , body = reqWithPass (Category.newCatEncoder cat) pass
         , expect = expectServerResponse msg
         }
 
 
-submitProduct : (Result Http.Error String -> msg) -> Product -> Cmd msg
-submitProduct msg prod =
+submitProduct : String -> (Result Http.Error ServerResponse -> msg) -> Product -> Cmd msg
+submitProduct pass msg prod =
     Http.post
         { url = "http://localhost:3000/newProd"
-        , body = Http.jsonBody (Products.newProductEncoder prod)
-        , expect = Http.expectString msg
+        , body = reqWithPass (Products.newProductEncoder prod) pass
+        , expect = expectServerResponse msg
         }
 
 
-removeProduct : (Result Http.Error String -> msg) -> Int -> Cmd msg
-removeProduct msg id =
+removeProduct : String -> (Result Http.Error ServerResponse -> msg) -> Int -> Cmd msg
+removeProduct pass msg id =
     Http.request
         { method = "DELETE"
         , headers = []
         , url = "http://localhost:3000/deleteProd/" ++ String.fromInt id
-        , body = Http.emptyBody
-        , expect = Http.expectString msg
+        , body = reqWithPass Encode.null pass
+        , expect = expectServerResponse msg
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-editProduct : (Result Http.Error String -> msg) -> Product -> Int -> Cmd msg
-editProduct msg newProd id =
-    Http.request
-        { method = "POST"
-        , headers = []
-        , url = "http://localhost:3000/updateProd/" ++ String.fromInt id
-        , body = Http.jsonBody (Products.newProductEncoder newProd)
-        , expect = Http.expectString msg
-        , timeout = Nothing
-        , tracker = Nothing
+editProduct : String -> (Result Http.Error ServerResponse -> msg) -> Product -> Int -> Cmd msg
+editProduct pass msg newProd id =
+    Http.post
+        { url = "http://localhost:3000/updateProd/" ++ String.fromInt id
+        , body = reqWithPass (Products.newProductEncoder newProd) pass
+        , expect = expectServerResponse msg
         }
 
 
-deleteCat : (Result Http.Error ServerResponse -> msg) -> Category.CategoryId -> Cmd msg
-deleteCat msg id =
+deleteCat : String -> (Result Http.Error ServerResponse -> msg) -> Category.CategoryId -> Cmd msg
+deleteCat pass msg id =
     Http.request
         { method = "DELETE"
         , headers = []
         , url = "http://localhost:3000/deleteCat/" ++ catIdToString id
-        , body = Http.emptyBody
+        , body = reqWithPass Encode.null pass
         , expect = expectServerResponse msg
         , timeout = Nothing
         , tracker = Nothing
@@ -81,7 +78,7 @@ updateCat : String -> (Result Http.Error ServerResponse -> msg) -> Category -> C
 updateCat pass msg cat =
     Http.post
         { url = "http://localhost:3000/updateCat/" ++ catIdToString cat.id
-        , body = Http.jsonBody (reqWithPass (Category.newCatEncoder cat) pass)
+        , body = reqWithPass (Category.newCatEncoder cat) pass
         , expect = expectServerResponse msg
         }
 

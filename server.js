@@ -5,6 +5,8 @@ const port = 3000
 
 const db = new sqlite3.Database("./coffee.db")
 
+// what follows is the most shit code that I've ever written in my entire life
+
 const super_secret_password = "cheese"
 
 // Add headers to work with elm-live
@@ -37,81 +39,54 @@ app.get('/products', (req, res) => {
 })
 
 app.get('/categories', (req, res) => {
-    db.all("SELECT * FROM category", (err, rows) => {
+    db.all("SELECT * FROM category", [], (err, rows) => {
         console.log(err)
         res.json(rows)
     })
 })
 
-app.post('/newCat', (req,res) => {
-    db.run("INSERT INTO category (name, sizeunits) VALUES (?, ?)", [req.body.name, req.body.units], (err) => {
+function runBody(res, action, err) {
+    return (err) => {
         if (err) {
-            console.log(err)
-            res.json({success: false, message: "Sqlite error"})
+            console.log(err);
+            res.json({success:false,message:"Sqlite error"})
             return
         }
-        res.json({success: true, message: "Successfully added category"})
-        res.status(201)
-    })
+        res.json({success:true,message:action})
+    }
+}
+
+app.post('/newCat', (req,res) => {
+    console.log(req)
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("INSERT INTO category (name, sizeunits) VALUES (?, ?)", [req.body.request.name, req.body.request.units], runBody(res, "Created category"))
 })
 
 app.post('/newProd', (req,res) => {
-    db.run("INSERT INTO product (name, description, size, category, price_cents) VALUES (?, ?, ?, ?, ?)", [req.body.name, req.body.description, req.body.size, req.body.category, req.body.price_cents], (err) => {
-        if (err) {
-            console.log(err)
-            return
-        }
-        res.send("success")
-        res.status(201)
-    })
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("INSERT INTO product (name, description, size, category, price_cents) VALUES (?, ?, ?, ?, ?)", [req.body.request.name, req.body.request.description, req.body.request.size, req.body.request.category, req.body.request.price_cents],runBody(res,"Created product"))
 })
-
+ 
 app.delete('/deleteCat/:id', (req, res) => {
-    db.run("DELETE FROM category WHERE id = ?", [req.params.id], (err) => {
-        if (err) {
-            console.log(err)
-            res.json({success: false, message: "sqlite error"})
-            return
-        }
-        res.json({success: true, message: "Successfully deleted category"})
-    })
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("DELETE FROM category WHERE id = ?", [req.params.id], runBody(res,"Deleted category"))
 })
 
 app.delete('/deleteProd/:id', (req, res) => {
-    db.run("DELETE FROM product WHERE id = ?", [req.params.id], (err) => {
-        if (err) {
-            console.log(err)
-            return
-        }
-        res.send("Success")
-    })
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("DELETE FROM product WHERE id = ?", [req.params.id], runBody(res,"Deleted product"))
 })
 
 app.post('/updateCat/:id', (req, res) => {
-    if (req.body.password != super_secret_password) {
-        res.json({success: false, message: "Incorrect password"})
-        console.log(req.body)
-        return
-    }
     const cat = req.body.request
-    console.log(cat)
-    db.run("UPDATE category SET name=?, sizeunits=? WHERE id=?", [cat.name, cat.units, req.params.id], (err) => {
-        if (err) {
-            res.json({success: false, message: "Sqlite error"})
-            return
-        }
-            res.json({success: true, message: "Successfully updated category"})
-    })
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("UPDATE category SET name=?, sizeunits=? WHERE id=?", [cat.name, cat.units, req.params.id],runBody(res,"updated category"))
 })
 
 app.post('/updateProd/:id', (req, res) => {
-    db.run("UPDATE product SET name=?, description=?, size=?, category=?, price_cents=?  WHERE id=?", [req.body.name, req.body.description, req.body.size, req.body.category, req.body.price_cents, req.params.id], (err) => {
-        if (err) {
-            console.log(err)
-            return
-        }
-        res.send("Successfully updated product")
-    })
+    const prod = req.body.request
+    if (req.body.password != super_secret_password) {res.json({success:false,message:"Wrong password"});return}
+    db.run("UPDATE product SET name=?, description=?, size=?, category=?, price_cents=?  WHERE id=?", [prod.name, prod.description, prod.size, prod.category, prod.price_cents, req.params.id],runBody(res,"updated product"))
 })
 
 app.post('/checkPass/:pass', (req, res) => {

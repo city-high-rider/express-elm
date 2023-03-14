@@ -82,7 +82,7 @@ initCurrentPage ( model, initialCmds ) =
                 AdminProducts ->
                     let
                         ( prodModel, prodCmds ) =
-                            ProductsPageFile.init
+                            ProductsPageFile.init model.credentials
                     in
                     ( ProductsPage prodModel, Cmd.map ProdMsg prodCmds )
 

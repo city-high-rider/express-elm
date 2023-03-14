@@ -214,6 +214,9 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        pass = Maybe.withDefault "" model.credentials
+    in
     case msg of
         ChangeWorkingCat newcat ->
             ( { model | workingCat = newcat }, Cmd.none )
@@ -228,17 +231,17 @@ update msg model =
                         submitResult
 
                     else
-                        updateCat (Maybe.withDefault "" model.credentials)
+                        updateCat
             in
             case Category.verifyCat category of
                 Err error ->
                     ( { model | status = RemoteData.succeed ( False, "Error! : " ++ error ) }, Cmd.none )
 
                 Ok cat ->
-                    ( model, request (RemoteData.fromResult >> ServerFeedback) cat )
+                    ( model, request pass (RemoteData.fromResult >> ServerFeedback) cat )
 
         Delete cat ->
-            ( model, deleteCat (RemoteData.fromResult >> ServerFeedback) cat.id )
+            ( model, deleteCat pass (RemoteData.fromResult >> ServerFeedback) cat.id)
 
         ServerFeedback feedback ->
             ( { emptyModel
