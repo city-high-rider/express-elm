@@ -80,7 +80,8 @@ view model =
 
                 Just _ ->
                     div []
-                        [ showButtons
+                        [ h3 [] [text "What would you like to do?"]
+                        , showButtons
                         , showRelevantForm model.action cats prods
                         , showModelStatus model.status
                         ]
