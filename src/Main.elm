@@ -2,7 +2,8 @@ module Main exposing (main)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
-import Html exposing (Html, div, h2, p, text)
+import Html exposing (Html, a, div, h2, nav, p, text)
+import Html.Attributes exposing (href)
 import Pages.AdminCategories as CategoriesPageFile
 import Pages.AdminProducts as ProductsPageFile
 import Pages.Home as HomePageFile
@@ -98,10 +99,28 @@ initCurrentPage ( model, initialCmds ) =
     )
 
 
+header : Html msg
+header =
+    nav []
+        [ a [ href "/" ] [ text "Home" ]
+        , a [ href "/menu" ] [ text "Menu" ]
+        , a [ href "/login" ] [ text "Login" ]
+        , a [ href "/adminCategories" ] [ text "Edit categories" ]
+        , a [ href "/adminProducts" ] [ text "Edit products" ]
+        ]
+
+
+footer : Html msg
+footer =
+    div []
+        [ p [] [ text "Made by 19299" ]
+        ]
+
+
 view : Model -> Document Msg
 view model =
     { title = "Elm app"
-    , body = [ currentView model ]
+    , body = [ header, currentView model, footer ]
     }
 
 
