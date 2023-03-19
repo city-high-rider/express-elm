@@ -4,8 +4,7 @@ import Category exposing (Category, CategoryId, getCategories)
 import ErrorViewing exposing (viewHttpError)
 import Html exposing (..)
 import Html.Attributes exposing (type_)
-import Html.Events exposing (onCheck)
-import Http
+import Html.Events exposing (onCheck, onClick)
 import Products exposing (Product, getProductsById)
 import RemoteData exposing (WebData)
 
@@ -14,9 +13,14 @@ import RemoteData exposing (WebData)
 -- init and model
 
 
+type alias Order =
+    ( Product, Int )
+
+
 type alias Model =
     { categories : WebData (List Category) -- these are the available categories to pick food from
     , sections : List Section -- list of sections that are currently displayed
+    , cart : List Order
     }
 
 
@@ -33,7 +37,7 @@ type alias Section =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model RemoteData.Loading []
+    ( Model RemoteData.Loading [] []
     , getCategories GotCats
     )
 
@@ -68,6 +72,7 @@ viewChecks model =
         RemoteData.Success cats ->
             div []
                 [ makeCheckmarks cats
+                , viewCart model.cart
                 ]
 
 
@@ -95,6 +100,42 @@ makeCheckmark cat =
     div []
         [ span [] [ text cat.name ]
         , input [ type_ "checkbox", onCheck (CheckedCat cat) ] []
+        ]
+
+
+viewCart : List Order -> Html Msg
+viewCart orders =
+    case orders of
+        [] ->
+            p [] [ text "You haven't ordered anything yet!" ]
+
+        ords ->
+            div []
+                [ h3 [] [ text "You have ordered:" ]
+                , viewOrders ords
+                , p []
+                    [ text <|
+                        "Your total comes out to $"
+                            ++ (String.fromFloat <|
+                                    (\x -> x / 100) <|
+                                        toFloat <|
+                                            List.sum <|
+                                                List.map (\( p, q ) -> p.price * q) ords
+                               )
+                    ]
+                ]
+
+
+viewOrders : List Order -> Html Msg
+viewOrders orders =
+    ul [] (List.map viewOrder orders)
+
+
+viewOrder : Order -> Html Msg
+viewOrder ( prod, qty ) =
+    div []
+        [ li [] [ text (String.fromInt qty ++ "x " ++ prod.name) ]
+        , button [ onClick <| AddOrder ( prod, -1 ) ] [ text "-" ]
         ]
 
 
@@ -128,6 +169,7 @@ viewProd units product =
         , p [] [ text ("Description: " ++ product.description) ]
         , p [] [ text ("Cost : " ++ productCost) ]
         , p [] [ text (String.fromInt product.size ++ units) ]
+        , button [ onClick (AddOrder ( product, 1 )) ] [ text "Add to cart" ]
         ]
 
 
@@ -139,6 +181,7 @@ type Msg
     = GotProducts CategoryId (WebData (List Product))
     | GotCats (WebData (List Category))
     | CheckedCat Category Bool
+    | AddOrder Order
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -165,6 +208,9 @@ update msg model =
             , updateSections newSections
             )
 
+        AddOrder order ->
+            ( { model | cart = mergeOrder model.cart order }, Cmd.none )
+
 
 insertProducts : WebData (List Product) -> CategoryId -> List Section -> List Section
 insertProducts newProducts id oldSections =
@@ -177,6 +223,23 @@ insertProducts newProducts id oldSections =
                 s
         )
         oldSections
+
+
+mergeOrder : List Order -> Order -> List Order
+mergeOrder orders ( prod, qty ) =
+    case orders of
+        [] ->
+            [ ( prod, qty ) ]
+
+        ( cp, cq ) :: xs ->
+            if cp == prod && cq + qty > 0 then
+                ( cp, cq + qty ) :: xs
+
+            else if cq + qty <= 0 then
+                xs
+
+            else
+                ( cp, cq ) :: mergeOrder xs ( prod, qty )
 
 
 updateSections : List Section -> Cmd Msg
