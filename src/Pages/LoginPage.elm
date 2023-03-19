@@ -1,7 +1,7 @@
 module Pages.LoginPage exposing (..)
 
-import Html exposing (Html, br, button, div, h3, input, p, text)
-import Html.Attributes exposing (type_, value)
+import Html exposing (Html, br, button, div, h3, input, p, text, a)
+import Html.Attributes exposing (type_, value, href)
 import Html.Events exposing (onClick, onInput)
 import Pages.AdminPageUtils exposing (showModelStatus)
 import RemoteData exposing (WebData)
@@ -32,6 +32,8 @@ view model =
         , button [ onClick Logout ] [ text "Log out" ]
         , br [] []
         , showModelStatus model.status
+        , a [href "/adminCategories"] [text "Back to categories"]
+        , a [href "/adminProducts"] [text "Back to products"]
         ]
 
 
