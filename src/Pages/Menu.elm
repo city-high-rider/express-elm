@@ -1,11 +1,17 @@
 module Pages.Menu exposing (..)
 
 import Category exposing (Category, CategoryId, getCategories)
-import ErrorViewing exposing (viewHttpError)
-import Html exposing (..)
+import Colorscheme exposing (Colorscheme)
+import Element exposing (Element, column, el, fill, height, layout, mouseOver, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input exposing (button, checkbox)
+import ErrorViewing exposing (viewHttpErrorStyled)
+import Html exposing (Html)
 import Html.Attributes exposing (type_)
 import Html.Events exposing (onCheck, onClick)
-import Products exposing (Product, getProductsById)
+import Products exposing (Product, getProducts, getProductsById)
 import RemoteData exposing (WebData)
 
 
@@ -18,27 +24,27 @@ type alias Order =
 
 
 type alias Model =
-    { categories : WebData (List Category) -- these are the available categories to pick food from
-    , sections : List Section -- list of sections that are currently displayed
+    { products : WebData (List Product) -- list of sections that are currently displayed
+    , sections : WebData (List Section)
     , cart : List Order
     }
 
 
 
 -- you will see categories referred to as "cats" extensively
-{- A section consists of a category and its corresponding food items -}
+{- A section is simply a category of products that is either showing or not showing. -}
 
 
 type alias Section =
     { category : Category
-    , products : WebData (List Product)
+    , showing : Bool
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model RemoteData.Loading [] []
-    , getCategories GotCats
+    ( Model RemoteData.Loading RemoteData.Loading []
+    , Cmd.batch [ getProducts GotProds, getCategories GotCats ]
     )
 
 
@@ -48,73 +54,65 @@ init =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewChecks model
-        , viewSections model.sections
+    layout [ Background.color Colorscheme.light.fg ] <|
+        let
+            sectionsAndProducts =
+                RemoteData.map2 (\s p -> ( s, p )) model.sections model.products
+        in
+        case sectionsAndProducts of
+            RemoteData.NotAsked ->
+                el [] (text "Developer forgot to send an Http request lol")
+
+            RemoteData.Loading ->
+                el [] (text "Loading data... please wait!")
+
+            RemoteData.Failure err ->
+                column []
+                    [ el [] (text "Unable to get data from the server!")
+                    , viewHttpErrorStyled err
+                    ]
+
+            RemoteData.Success ( sections, products ) ->
+                column [ spaceEvenly ]
+                    [ viewSections sections products
+                    , viewCart model.cart
+                    ]
+
+
+viewSections : List Section -> List Product -> Element Msg
+viewSections sections products =
+    column [ spacing 30 ] (List.map (viewSection products) sections)
+
+
+viewSection : List Product -> Section -> Element Msg
+viewSection prods section =
+    column [ spacing 20 ]
+        [ checkbox []
+            { onChange = ToggleSection section
+            , icon = Element.Input.defaultCheckbox
+            , checked = section.showing
+            , label = Element.Input.labelRight [] (text section.category.name)
+            }
+        , if section.showing then
+            viewProds (List.filter (\p -> p.category == section.category.id) prods) section.category.units
+
+          else
+            Element.none
         ]
 
 
-viewChecks : Model -> Html Msg
-viewChecks model =
-    case model.categories of
-        RemoteData.NotAsked ->
-            div [] [ h2 [] [ text "You haven't asked for the data!" ] ]
-
-        RemoteData.Loading ->
-            h2 [] [ text "Loading.. please wait" ]
-
-        RemoteData.Failure err ->
-            div []
-                [ h2 [] [ text "someting went wrong" ]
-                , viewHttpError err
-                ]
-
-        RemoteData.Success cats ->
-            div []
-                [ makeCheckmarks cats
-                , viewCart model.cart
-                ]
-
-
-viewSections : List Section -> Html Msg
-viewSections sections =
-    div [] (List.map viewSection sections)
-
-
-viewSection : Section -> Html Msg
-viewSection section =
-    div []
-        [ h2 [] [ text section.category.name ]
-        , viewProds section.products section.category.units
-        ]
-
-
-makeCheckmarks : List Category -> Html Msg
-makeCheckmarks cats =
-    div []
-        (List.map makeCheckmark cats)
-
-
-makeCheckmark : Category -> Html Msg
-makeCheckmark cat =
-    div []
-        [ span [] [ text cat.name ]
-        , input [ type_ "checkbox", onCheck (CheckedCat cat) ] []
-        ]
-
-
-viewCart : List Order -> Html Msg
+viewCart : List Order -> Element Msg
 viewCart orders =
     case orders of
         [] ->
-            p [] [ text "You haven't ordered anything yet!" ]
+            el [] (text "You haven't ordered anything yet!")
 
         ords ->
-            div []
-                [ h3 [] [ text "You have ordered:" ]
+            column []
+                [ el [] (text "You have ordered:")
                 , viewOrders ords
-                , p []
-                    [ text <|
+                , el []
+                    (text <|
                         "Your total comes out to $"
                             ++ (String.fromFloat <|
                                     (\x -> x / 100) <|
@@ -122,54 +120,40 @@ viewCart orders =
                                             List.sum <|
                                                 List.map (\( p, q ) -> p.price * q) ords
                                )
-                    ]
+                    )
                 ]
 
 
-viewOrders : List Order -> Html Msg
+viewOrders : List Order -> Element Msg
 viewOrders orders =
-    ul [] (List.map viewOrder orders)
+    column [] (List.map viewOrder orders)
 
 
-viewOrder : Order -> Html Msg
+viewOrder : Order -> Element Msg
 viewOrder ( prod, qty ) =
-    div []
-        [ li [] [ text (String.fromInt qty ++ "x " ++ prod.name) ]
-        , button [ onClick <| AddOrder ( prod, -1 ) ] [ text "-" ]
+    row []
+        [ el [] (text (String.fromInt qty ++ "x " ++ prod.name))
+        , button [] { onPress = Just <| AddOrder ( prod, -1 ), label = text "-" }
         ]
 
 
-viewProds : WebData (List Product) -> String -> Html Msg
+viewProds : List Product -> String -> Element Msg
 viewProds prods units =
-    case prods of
-        RemoteData.NotAsked ->
-            p [] [ text "haven't asked" ]
-
-        RemoteData.Loading ->
-            p [] [ text "Getting your items... please wait" ]
-
-        RemoteData.Failure err ->
-            div []
-                [ h2 [] [ text "unable to get your item!" ]
-                , viewHttpError err
-                ]
-
-        RemoteData.Success goodProds ->
-            div [] (List.map (viewProd units) goodProds)
+    column [] (List.map (viewProd units) prods)
 
 
-viewProd : String -> Product -> Html Msg
+viewProd : String -> Product -> Element Msg
 viewProd units product =
     let
         productCost =
             String.fromFloat <| (toFloat product.price / 100)
     in
-    div []
-        [ h3 [] [ text product.name ]
-        , p [] [ text ("Description: " ++ product.description) ]
-        , p [] [ text ("Cost : " ++ productCost) ]
-        , p [] [ text (String.fromInt product.size ++ units) ]
-        , button [ onClick (AddOrder ( product, 1 )) ] [ text "Add to cart" ]
+    column []
+        [ el [] (text product.name)
+        , el [] (text ("Description: " ++ product.description))
+        , el [] (text ("Cost : " ++ productCost))
+        , el [] (text (String.fromInt product.size ++ units))
+        , button [] { onPress = Just <| AddOrder ( product, 1 ), label = text "Add to cart" }
         ]
 
 
@@ -178,51 +162,51 @@ viewProd units product =
 
 
 type Msg
-    = GotProducts CategoryId (WebData (List Product))
+    = GotProds (WebData (List Product))
     | GotCats (WebData (List Category))
-    | CheckedCat Category Bool
+    | ToggleSection Section Bool
     | AddOrder Order
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotProducts forCat prods ->
-            ( { model | sections = insertProducts prods forCat model.sections }, Cmd.none )
+        GotProds prods ->
+            ( { model | products = prods }, Cmd.none )
 
+        -- our model does not work with categories, just sections. So we
+        -- must convert.
         GotCats cats ->
-            ( { model | categories = cats }, Cmd.none )
+            ( { model | sections = webDataListMap (\c -> Section c False) cats }, Cmd.none )
 
-        CheckedCat cat on ->
-            let
-                newSections =
-                    if on then
-                        Section cat RemoteData.Loading :: model.sections
-
-                    else
-                        List.filter (\s -> s.category /= cat) model.sections
-            in
+        ToggleSection section state ->
             ( { model
-                | sections = newSections
+                | sections =
+                    webDataListMap
+                        (\s ->
+                            if s == section then
+                                { s | showing = state }
+
+                            else
+                                s
+                        )
+                        model.sections
               }
-            , updateSections newSections
+            , Cmd.none
             )
 
         AddOrder order ->
             ( { model | cart = mergeOrder model.cart order }, Cmd.none )
 
 
-insertProducts : WebData (List Product) -> CategoryId -> List Section -> List Section
-insertProducts newProducts id oldSections =
-    List.map
-        (\s ->
-            if s.category.id == id then
-                { s | products = newProducts }
 
-            else
-                s
-        )
-        oldSections
+-- there's gotta be a more elegant way to do this... function composition or something.
+-- I feel like I'm missing something obvious here.
+
+
+webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
+webDataListMap fn webdata =
+    RemoteData.map (\ws -> List.map fn ws) webdata
 
 
 mergeOrder : List Order -> Order -> List Order
@@ -240,14 +224,3 @@ mergeOrder orders ( prod, qty ) =
 
             else
                 ( cp, cq ) :: mergeOrder xs ( prod, qty )
-
-
-updateSections : List Section -> Cmd Msg
-updateSections sections =
-    List.map updateSection sections
-        |> Cmd.batch
-
-
-updateSection : Section -> Cmd Msg
-updateSection section =
-    getProductsById GotProducts section.category.id
