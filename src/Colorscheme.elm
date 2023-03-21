@@ -1,4 +1,4 @@
-module Colorscheme exposing (light)
+module Colorscheme exposing (..)
 
 import Element exposing (Color, rgb255)
 
@@ -8,7 +8,7 @@ type alias Colorscheme =
     , secondary : Color
     , fg : Color
     , bg : Color
-    , misc : List Color
+    , misc : Color
     }
 
 
@@ -19,4 +19,4 @@ light =
         (rgb255 254 119 29)
         (rgb255 246 233 199)
         (rgb255 116 113 123)
-        [ rgb255 71 152 136 ]
+        (rgb255 71 152 136)
