@@ -2,16 +2,14 @@ module Pages.Menu exposing (..)
 
 import Category exposing (Category, CategoryId, getCategories)
 import Colorscheme exposing (Colorscheme)
-import Element exposing (Element, column, el, fill, height, layout, mouseOver, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, layout, mouseOver, paragraph, row, spaceEvenly, spacing, text, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button, checkbox)
 import ErrorViewing exposing (viewHttpErrorStyled)
 import Html exposing (Html)
-import Html.Attributes exposing (type_)
-import Html.Events exposing (onCheck, onClick)
-import Products exposing (Product, getProducts, getProductsById)
+import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
 
 
@@ -73,7 +71,7 @@ view model =
                     ]
 
             RemoteData.Success ( sections, products ) ->
-                column [ spaceEvenly ]
+                column [ spaceEvenly, spacing 20, centerX, width fill ]
                     [ viewSections sections products
                     , viewCart model.cart
                     ]
@@ -81,17 +79,35 @@ view model =
 
 viewSections : List Section -> List Product -> Element Msg
 viewSections sections products =
-    column [ spacing 30 ] (List.map (viewSection products) sections)
+    column
+        [ spacing 30
+        , width <| Element.maximum 1200 fill
+        , centerX
+        , Element.padding 20
+        ]
+        (List.map (viewSection products) sections)
 
 
 viewSection : List Product -> Section -> Element Msg
 viewSection prods section =
-    column [ spacing 20 ]
-        [ checkbox []
+    column
+        [ width fill, Background.color Colorscheme.light.fgDarker ]
+        [ checkbox
+            [ centerX
+            , Background.color Colorscheme.light.bg
+            , Border.rounded 8
+            , Border.solid
+            ]
             { onChange = ToggleSection section
             , icon = Element.Input.defaultCheckbox
             , checked = section.showing
-            , label = Element.Input.labelRight [] (text section.category.name)
+            , label =
+                Element.Input.labelRight
+                    [ Font.color Colorscheme.light.primary
+                    , Font.size 35
+                    , centerX
+                    ]
+                    (text section.category.name)
             }
         , if section.showing then
             viewProds (List.filter (\p -> p.category == section.category.id) prods) section.category.units
@@ -105,22 +121,22 @@ viewCart : List Order -> Element Msg
 viewCart orders =
     case orders of
         [] ->
-            el [] (text "You haven't ordered anything yet!")
+            el [ Font.color Colorscheme.light.bg ] (text "You haven't ordered anything yet!")
 
         ords ->
-            column []
+            column [ Font.color Colorscheme.light.bg ]
                 [ el [] (text "You have ordered:")
                 , viewOrders ords
-                , el []
-                    (text <|
-                        "Your total comes out to $"
-                            ++ (String.fromFloat <|
-                                    (\x -> x / 100) <|
-                                        toFloat <|
-                                            List.sum <|
-                                                List.map (\( p, q ) -> p.price * q) ords
-                               )
-                    )
+                , paragraph []
+                    [ el [] (text "Your total comes out to: ")
+                    , el [ Font.color Colorscheme.light.primary ] <|
+                        text <|
+                            String.fromFloat <|
+                                (\x -> x / 100) <|
+                                    toFloat <|
+                                        List.sum <|
+                                            List.map (\( p, q ) -> p.price * q) ords
+                    ]
                 ]
 
 
@@ -133,13 +149,28 @@ viewOrder : Order -> Element Msg
 viewOrder ( prod, qty ) =
     row []
         [ el [] (text (String.fromInt qty ++ "x " ++ prod.name))
-        , button [] { onPress = Just <| AddOrder ( prod, -1 ), label = text "-" }
+        , button []
+            { onPress = Just <| AddOrder ( prod, -1 )
+            , label =
+                el
+                    [ Element.padding 6
+                    , Font.color Colorscheme.light.secondary
+                    , Background.color Colorscheme.light.fgDarker
+                    ]
+                    (text "Remove")
+            }
         ]
 
 
 viewProds : List Product -> String -> Element Msg
 viewProds prods units =
-    column [] (List.map (viewProd units) prods)
+    wrappedRow
+        [ Background.color Colorscheme.light.fgDarker
+        , width fill
+        , spacing 15
+        , spaceEvenly
+        ]
+        (List.map (viewProd units) prods)
 
 
 viewProd : String -> Product -> Element Msg
@@ -148,12 +179,28 @@ viewProd units product =
         productCost =
             String.fromFloat <| (toFloat product.price / 100)
     in
-    column []
-        [ el [] (text product.name)
+    column
+        [ Font.color Colorscheme.light.bg
+        , width fill
+        , Border.color Colorscheme.light.misc
+        , Border.dashed
+        , Border.width 2
+        , Background.color Colorscheme.light.fg
+        ]
+        [ el [ Font.size 30, centerX ] (text product.name)
         , el [] (text ("Description: " ++ product.description))
         , el [] (text ("Cost : " ++ productCost))
         , el [] (text (String.fromInt product.size ++ units))
-        , button [] { onPress = Just <| AddOrder ( product, 1 ), label = text "Add to cart" }
+        , button []
+            { onPress = Just <| AddOrder ( product, 1 )
+            , label =
+                el
+                    [ Font.color Colorscheme.light.primary
+                    , Element.padding 8
+                    , Background.color Colorscheme.light.bg
+                    ]
+                    (text "Add to cart")
+            }
         ]
 
 
