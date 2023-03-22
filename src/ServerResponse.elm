@@ -12,6 +12,11 @@ responseDecoder =
     Decode.map2 (\s m -> ( s, m )) (field "success" bool) (field "message" string)
 
 
+succeed : String -> ServerResponse
+succeed s =
+    ( True, s )
+
+
 responseToString : ServerResponse -> String
 responseToString ( s, m ) =
     if s then

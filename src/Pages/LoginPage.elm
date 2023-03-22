@@ -108,4 +108,4 @@ update msg model =
             ( { model | status = w }, Cmd.none, toSubmit )
 
         Logout ->
-            ( model, Cmd.none, Nothing )
+            ( { model | status = RemoteData.succeed <| ServerResponse.succeed "Logged out" }, Cmd.none, Nothing )
