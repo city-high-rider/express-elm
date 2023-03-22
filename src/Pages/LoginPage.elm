@@ -1,7 +1,7 @@
 module Pages.LoginPage exposing (..)
 
 import Colorscheme exposing (Colorscheme)
-import Element exposing (alignRight, centerX, column, el, fill, layout, link, maximum, padding, row, spacing, text, width)
+import Element exposing (alignRight, centerX, column, el, fill, layout, link, maximum, padding, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -53,7 +53,7 @@ view model =
             , button [ alignRight ] { onPress = Just Submit, label = buttonLabel "submit" }
             , button [ alignRight ] { onPress = Just Logout, label = buttonLabel "logout" }
             , showModelStatusStyle model.status
-            , row [ spacing 10 ]
+            , row [ spaceEvenly, width fill ]
                 [ link
                     [ Font.color Colorscheme.light.secondary
                     , Element.mouseOver [ Font.color Colorscheme.light.misc ]
@@ -64,6 +64,11 @@ view model =
                     , Element.mouseOver [ Font.color Colorscheme.light.misc ]
                     ]
                     { url = "/adminProducts", label = text "Back to products" }
+                , link
+                    [ Font.color Colorscheme.light.secondary
+                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
+                    ]
+                    { url = "/", label = text "Back to home" }
                 ]
             ]
 
