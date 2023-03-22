@@ -1,9 +1,10 @@
 module Pages.AdminPageUtils exposing (..)
 
+import Element exposing (Element, el)
+import ErrorViewing exposing (httpErrorToString)
 import Html exposing (Html, div, p, text)
 import RemoteData exposing (WebData)
 import ServerResponse exposing (ServerResponse, responseToString)
-import ErrorViewing exposing (httpErrorToString)
 
 
 createSuccessMessage : Result e a -> String -> String
@@ -30,3 +31,19 @@ showModelStatus webR =
 
         RemoteData.Success r ->
             p [] [ text <| responseToString r ]
+
+
+showModelStatusStyle : WebData ServerResponse -> Element msg
+showModelStatusStyle webR =
+    case webR of
+        RemoteData.NotAsked ->
+            el [] (Element.text "You haven't done anything yet")
+
+        RemoteData.Loading ->
+            el [] (Element.text "Loading... please wait")
+
+        RemoteData.Failure err ->
+            el [] (Element.text <| "Failed to reach the server : " ++ httpErrorToString err)
+
+        RemoteData.Success r ->
+            el [] (Element.text <| responseToString r)
