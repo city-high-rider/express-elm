@@ -1,9 +1,13 @@
 module Pages.LoginPage exposing (..)
 
-import Html exposing (Html, br, button, div, h3, input, p, text, a)
-import Html.Attributes exposing (type_, value, href)
-import Html.Events exposing (onClick, onInput)
-import Pages.AdminPageUtils exposing (showModelStatus)
+import Colorscheme exposing (Colorscheme)
+import Element exposing (alignRight, centerX, column, el, fill, layout, link, maximum, padding, row, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input exposing (button, currentPassword)
+import Html exposing (Html)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (checkPassword)
 import ServerResponse exposing (ServerResponse)
@@ -24,17 +28,55 @@ init =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h3 [] [ text "Enter the admin password" ]
-        , input [ onInput ChangedInput, type_ "text", value model.input ] []
-        , button [ onClick Submit ] [ text "Enter" ]
-        , br [] []
-        , button [ onClick Logout ] [ text "Log out" ]
-        , br [] []
-        , showModelStatus model.status
-        , a [href "/adminCategories"] [text "Back to categories"]
-        , a [href "/adminProducts"] [text "Back to products"]
+    layout [ Background.color Colorscheme.light.fg ] <|
+        column
+            [ spacing 10
+            , padding 10
+            , Font.color Colorscheme.light.bg
+            , width <| maximum 1000 fill
+            , centerX
+            ]
+            [ currentPassword []
+                { onChange = ChangedInput
+                , text = model.input
+                , placeholder = Nothing
+                , label =
+                    Element.Input.labelAbove
+                        [ Font.color Colorscheme.light.primary
+                        , Font.size 30
+                        , centerX
+                        ]
+                    <|
+                        text "Enter the admin password"
+                , show = True
+                }
+            , button [ alignRight ] { onPress = Just Submit, label = buttonLabel "submit" }
+            , button [ alignRight ] { onPress = Just Logout, label = buttonLabel "logout" }
+            , showModelStatusStyle model.status
+            , row [ spacing 10 ]
+                [ link
+                    [ Font.color Colorscheme.light.secondary
+                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
+                    ]
+                    { url = "/adminCategories", label = text "Back to categories" }
+                , link
+                    [ Font.color Colorscheme.light.secondary
+                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
+                    ]
+                    { url = "/adminProducts", label = text "Back to products" }
+                ]
+            ]
+
+
+buttonLabel : String -> Element.Element msg
+buttonLabel txt =
+    el
+        [ Background.color Colorscheme.light.bg
+        , padding 10
+        , Font.color Colorscheme.light.primary
+        , Border.rounded 8
         ]
+        (text txt)
 
 
 type Msg
