@@ -16,7 +16,7 @@ type alias Category =
 
 empty : Category
 empty =
-    Category Temporary "" ""
+    Category Unassigned "" ""
 
 
 
@@ -26,7 +26,7 @@ empty =
 
 type CategoryId
     = Id Int
-    | Temporary
+    | Unassigned
 
 
 catIdToInt : CategoryId -> Int
@@ -35,7 +35,7 @@ catIdToInt id =
         Id x ->
             x
 
-        Temporary ->
+        Unassigned ->
             -1
 
 
@@ -51,7 +51,7 @@ intToCatId x =
 
 emptyCatId : CategoryId
 emptyCatId =
-    Temporary
+    Unassigned
 
 
 catIdDecoder : Decoder CategoryId
