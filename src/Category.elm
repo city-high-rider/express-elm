@@ -5,7 +5,6 @@ import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import RemoteData exposing (WebData)
-import Url.Parser exposing (Parser, custom)
 
 
 type alias Category =
