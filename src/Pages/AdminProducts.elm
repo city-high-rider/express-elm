@@ -2,7 +2,7 @@ module Pages.AdminProducts exposing (..)
 
 import Category exposing (Category, getCategories)
 import Colorscheme
-import Element exposing (Element, centerX, column, el, fill, layout, link, mouseOver, paragraph, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, layout, link, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input exposing (button, labelAbove)
@@ -14,6 +14,7 @@ import Products exposing (Product, UserInputProduct, getProducts)
 import RemoteData exposing (WebData)
 import Requests
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel, linkLabel)
 
 
 type alias Model =
@@ -76,11 +77,7 @@ view model =
                             column [ centerX ]
                                 [ el [ centerX, Font.size 30, Font.color Colorscheme.light.primary ] (text "You are not logged in!")
                                 , el [] (text "Your requests will not work. Login at")
-                                , link
-                                    [ Font.color Colorscheme.light.secondary
-                                    , mouseOver [ Font.color Colorscheme.light.misc ]
-                                    ]
-                                    { url = "/login", label = text "Login" }
+                                , link [] { url = "/login", label = linkLabel "Login" [] }
                                 ]
 
                         Just _ ->
@@ -96,9 +93,9 @@ view model =
 showButtons : Element Msg
 showButtons =
     row [ spacing 15 ]
-        [ button [] { onPress = Just <| NewAction <| Creating Products.empty, label = text "Create new product" }
-        , button [] { onPress = Just <| NewAction <| Editing Nothing, label = text "Edit a product" }
-        , button [] { onPress = Just <| NewAction <| Deleting False Nothing, label = text "Remove a product" }
+        [ button [] { onPress = Just <| NewAction <| Creating Products.empty, label = buttonLabel "Create new product" [] }
+        , button [] { onPress = Just <| NewAction <| Editing Nothing, label = buttonLabel "Edit a product" [] }
+        , button [] { onPress = Just <| NewAction <| Deleting False Nothing, label = buttonLabel "Remove a product" [] }
         ]
 
 
@@ -139,7 +136,7 @@ submitButton userInput msg =
                 ]
 
         Ok p ->
-            button [] { onPress = Just <| msg p, label = text "submit" }
+            button [] { onPress = Just <| msg p, label = buttonLabel "submit" [] }
 
 
 viewEditStuff : Maybe ( UserInputProduct, Int ) -> List Category -> List Product -> Element Msg
@@ -201,15 +198,15 @@ showDeleteButton isConfirmShowing maybeId =
                     if isConfirmShowing then
                         column []
                             [ el [] (text "Are you sure?")
-                            , button [] { onPress = Just <| ToggleConfirm False, label = text "No!" }
-                            , button [] { onPress = Just <| Delete id, label = text "Yes!" }
+                            , button [] { onPress = Just <| ToggleConfirm False, label = buttonLabel "No!" [] }
+                            , button [] { onPress = Just <| Delete id, label = buttonLabel "Yes!" [] }
                             ]
 
                     else
                         Element.none
             in
             column []
-                [ button [] { onPress = Just <| ToggleConfirm True, label = text "Delete!" }
+                [ button [] { onPress = Just <| ToggleConfirm True, label = buttonLabel "Delete!" [] }
                 , displayButton
                 ]
 
