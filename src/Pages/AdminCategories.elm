@@ -13,6 +13,7 @@ import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel)
 
 
 type alias Model =
@@ -95,9 +96,18 @@ viewChoices =
     column [ centerX ]
         [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "What would you like to do?")
         , row [ spacing 20 ]
-            [ button [] { onPress = Just <| ChangeAction Creating, label = text "Create a category" }
-            , button [] { onPress = Just <| ChangeAction Editing, label = text "Edit a category" }
-            , button [] { onPress = Just <| ChangeAction <| Deleting False, label = text "Delete a category" }
+            [ button []
+                { onPress = Just <| ChangeAction Creating
+                , label = buttonLabel "Create a category" []
+                }
+            , button []
+                { onPress = Just <| ChangeAction Editing
+                , label = buttonLabel "Edit a category" []
+                }
+            , button []
+                { onPress = Just <| ChangeAction <| Deleting False
+                , label = buttonLabel "Delete a category" []
+                }
             ]
         ]
 
@@ -149,7 +159,7 @@ categoryForm workingCat =
     in
     column []
         [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
-        , button [] { onPress = Just (Submit Creating cat), label = text "Submit" }
+        , button [] { onPress = Just (Submit Creating cat), label = buttonLabel "Submit" [] }
         ]
 
 
@@ -163,7 +173,7 @@ deleteForm confirmShowing working cats =
 
             Selected workingCat ->
                 column []
-                    [ button [] { onPress = Just (ToggleDeleteConfirm True), label = text "Delete" }
+                    [ button [] { onPress = Just (ToggleDeleteConfirm True), label = buttonLabel "Delete" [] }
                     , confirmDelete workingCat confirmShowing
                     ]
         ]
@@ -177,8 +187,8 @@ confirmDelete cat isShowing =
     else
         column []
             [ el [] (text "Are you sure?")
-            , button [] { onPress = Just <| ToggleDeleteConfirm False, label = text "No!" }
-            , button [] { onPress = Just <| Delete cat, label = text "Yes!" }
+            , button [] { onPress = Just <| ToggleDeleteConfirm False, label = buttonLabel "No!" [] }
+            , button [] { onPress = Just <| Delete cat, label = buttonLabel "Yes!" [] }
             ]
 
 
@@ -225,7 +235,7 @@ showEditFormOrNothing workingCat =
         Selected cat ->
             column []
                 [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
-                , button [] { onPress = Just <| Submit Editing cat, label = text "Edit" }
+                , button [] { onPress = Just <| Submit Editing cat, label = buttonLabel "Edit" [] }
                 ]
 
 
