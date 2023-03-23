@@ -2,7 +2,7 @@ module Pages.AdminCategories exposing (..)
 
 import Category exposing (Category, getCategories)
 import Colorscheme
-import Element exposing (Element, centerX, column, el, fill, layout, link, maximum, mouseOver, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, layout, link, maximum, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input exposing (button, option, radio)
