@@ -5,6 +5,7 @@ import Json.Decode exposing (Decoder, int, list, string)
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import RemoteData exposing (WebData)
+import Url.Parser exposing (Parser, custom)
 
 
 type alias Category =
@@ -16,27 +17,16 @@ type alias Category =
 
 empty : Category
 empty =
-    Category Unassigned "" ""
-
-
-
--- temporary id is used to store the id of categories that haven't been
--- created yet when we are creating them
+    Category (CategoryId -1) "" ""
 
 
 type CategoryId
-    = Id Int
-    | Unassigned
+    = CategoryId Int
 
 
 catIdToInt : CategoryId -> Int
-catIdToInt id =
-    case id of
-        Id x ->
-            x
-
-        Unassigned ->
-            -1
+catIdToInt (CategoryId id) =
+    id
 
 
 catIdToString : CategoryId -> String
@@ -46,17 +36,17 @@ catIdToString id =
 
 intToCatId : Int -> CategoryId
 intToCatId x =
-    Id x
+    CategoryId x
 
 
 emptyCatId : CategoryId
 emptyCatId =
-    Unassigned
+    CategoryId -1
 
 
 catIdDecoder : Decoder CategoryId
 catIdDecoder =
-    Json.Decode.map intToCatId int
+    Json.Decode.map CategoryId int
 
 
 catsDecoder : Decoder (List Category)
