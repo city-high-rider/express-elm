@@ -13,7 +13,7 @@ import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
 import ServerResponse exposing (ServerResponse)
-import StyleLabels exposing (buttonLabel)
+import StyleLabels exposing (buttonLabel, linkLabel)
 
 
 type alias Model =
@@ -78,12 +78,7 @@ view model =
                             column [ width fill, centerX, spacing 10 ]
                                 [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "You are not logged in!")
                                 , el [ centerX ] (text "You need to be logged in to change the menu.")
-                                , link
-                                    [ centerX
-                                    , Font.color Colorscheme.light.secondary
-                                    , mouseOver [ Font.color Colorscheme.light.misc ]
-                                    ]
-                                    { url = "/login", label = text "Log in" }
+                                , link [ centerX ] { url = "/login", label = linkLabel "Log in" [] }
                                 ]
 
                         Just _ ->
