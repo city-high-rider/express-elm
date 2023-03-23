@@ -1,17 +1,15 @@
 module Pages.AdminCategories exposing (..)
 
 import Category exposing (Category, getCategories)
-import Colorscheme exposing (Colorscheme)
-import Element exposing (Element, column, el, layout, link, row, text)
+import Colorscheme
+import Element exposing (Element, centerX, column, el, fill, layout, link, maximum, mouseOver, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input exposing (button, option, radio)
-import ErrorViewing exposing (viewHttpError, viewHttpErrorStyled)
+import ErrorViewing exposing (viewHttpErrorStyled)
 import Form.Category
 import Html exposing (Html)
-import Html.Attributes exposing (href, type_, value)
-import Html.Events exposing (onClick, onInput)
-import Pages.AdminPageUtils exposing (showModelStatus, showModelStatusStyle)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
 import ServerResponse exposing (ServerResponse)
@@ -55,8 +53,8 @@ init credentials =
 
 view : Model -> Html Msg
 view model =
-    layout [] <|
-        column []
+    layout [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
+        column [ width fill, centerX ]
             [ case model.availableCats of
                 RemoteData.NotAsked ->
                     el [ Font.size 30 ] (text "developer forgot to send an http request")
@@ -76,10 +74,15 @@ view model =
                 RemoteData.Success cats ->
                     case model.credentials of
                         Nothing ->
-                            column []
-                                [ el [ Font.size 30 ] (text "You are not logged in!")
-                                , text "You need to be logged in to change the menu."
-                                , link [ Font.color Colorscheme.light.secondary ] { url = "/login", label = text "Log in" }
+                            column [ width fill, centerX, spacing 10 ]
+                                [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "You are not logged in!")
+                                , el [ centerX ] (text "You need to be logged in to change the menu.")
+                                , link
+                                    [ centerX
+                                    , Font.color Colorscheme.light.secondary
+                                    , mouseOver [ Font.color Colorscheme.light.misc ]
+                                    ]
+                                    { url = "/login", label = text "Log in" }
                                 ]
 
                         Just _ ->
@@ -89,9 +92,9 @@ view model =
 
 viewChoices : Element Msg
 viewChoices =
-    column []
-        [ el [ Font.size 30 ] (text "What would you like to do?")
-        , row []
+    column [ centerX ]
+        [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "What would you like to do?")
+        , row [ spacing 20 ]
             [ button [] { onPress = Just <| ChangeAction Creating, label = text "Create a category" }
             , button [] { onPress = Just <| ChangeAction Editing, label = text "Edit a category" }
             , button [] { onPress = Just <| ChangeAction <| Deleting False, label = text "Delete a category" }
@@ -126,7 +129,7 @@ showRelevantForm model cats =
 
 viewLoaded : Model -> List Category -> Element Msg
 viewLoaded model cats =
-    column []
+    column [ width <| maximum 1000 fill, centerX ]
         [ viewChoices
         , showRelevantForm model cats
         , showModelStatusStyle model.status
