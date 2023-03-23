@@ -23,7 +23,7 @@ type alias UserInputProduct =
     , description : String
     , size : String
     , price : String
-    , category : String
+    , category : Maybe CategoryId
     }
 
 
@@ -34,7 +34,7 @@ empty =
         ""
         ""
         ""
-        ""
+        Nothing
 
 
 userInputToProduct : UserInputProduct -> Result String Product
@@ -49,25 +49,15 @@ userInputToProduct userInput =
                 |> Result.andThen checkPositive
 
         processCategory =
-            Result.fromMaybe "Select a category!" (String.toInt userInput.category)
-                |> Result.andThen checkPositive
+            Result.fromMaybe "Select a category!" userInput.category
+
+        processName =
+            checkNotEmpty "Name" userInput.name
+
+        processDescription =
+            checkNotEmpty "Description" userInput.description
     in
-    case allOk [ processSize, processCost, processCategory ] of
-        Err e ->
-            Err e
-
-        Ok (s :: c :: cat :: []) ->
-            Ok <|
-                Product
-                    -1
-                    userInput.name
-                    userInput.description
-                    s
-                    c
-                    (Category.intToCatId cat)
-
-        _ ->
-            Err "Not enough information"
+    Result.map5 (Product -1) processName processDescription processSize processCost processCategory
 
 
 prodToString : Product -> UserInputProduct
@@ -77,25 +67,7 @@ prodToString prod =
         prod.description
         (String.fromInt prod.size)
         (String.fromInt prod.price)
-        (Category.catIdToString prod.category)
-
-
-allOk : List (Result e a) -> Result e (List a)
-allOk toCheck =
-    let
-        fn : Result e a -> Result e (List a) -> Result e (List a)
-        fn element accumulator =
-            case ( element, accumulator ) of
-                ( Ok e, Ok xs ) ->
-                    Ok (xs ++ [ e ])
-
-                ( Err e, Ok _ ) ->
-                    Err e
-
-                ( _, Err e ) ->
-                    Err e
-    in
-    List.foldl fn (Ok []) toCheck
+        (Just prod.category)
 
 
 checkPositive : Int -> Result String Int
@@ -105,6 +77,15 @@ checkPositive n =
 
     else
         Ok n
+
+
+checkNotEmpty : String -> String -> Result String String
+checkNotEmpty label toCheck =
+    if toCheck == "" then
+        Err <| label ++ " cannot be empty!"
+
+    else
+        Ok toCheck
 
 
 

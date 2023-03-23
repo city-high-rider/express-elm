@@ -2,7 +2,7 @@ module Pages.AdminProducts exposing (..)
 
 import Category exposing (Category, getCategories)
 import Colorscheme
-import Element exposing (Element, centerX, column, el, fill, layout, link, mouseOver, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, layout, link, mouseOver, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input exposing (button, labelAbove)
@@ -28,12 +28,8 @@ type alias Model =
 type Action
     = NotPicked
     | Creating UserInputProduct
-    | Editing (Maybe UserInputWithId)
+    | Editing (Maybe ( UserInputProduct, Int ))
     | Deleting Bool (Maybe Int)
-
-
-type alias UserInputWithId =
-    ( UserInputProduct, Int )
 
 
 init : Maybe String -> ( Model, Cmd Msg )
@@ -137,40 +133,43 @@ submitButton : UserInputProduct -> (Product -> msg) -> Element msg
 submitButton userInput msg =
     case Products.userInputToProduct userInput of
         Err e ->
-            el [] (text <| "Error: " ++ e)
+            paragraph []
+                [ el [ Font.color Colorscheme.light.primary ] (text "Error: ")
+                , el [ Font.color Colorscheme.light.bg ] (text e)
+                ]
 
         Ok p ->
             button [] { onPress = Just <| msg p, label = text "submit" }
 
 
-viewEditStuff : Maybe UserInputWithId -> List Category -> List Product -> Element Msg
+viewEditStuff : Maybe ( UserInputProduct, Int ) -> List Category -> List Product -> Element Msg
 viewEditStuff maybeStuff cats prods =
     column [ centerX ]
         [ el [ Font.size 25 ] (text "Edit a product")
-        , pickAProduct prods (UpdatedEdit << pickProductByStringId prods)
+        , pickAProduct prods (Maybe.map Tuple.second maybeStuff) UpdatedEdit
         , showEditInput maybeStuff cats
         ]
 
 
-pickAProduct : List Product -> (String -> msg) -> Element msg
-pickAProduct prods msg =
+pickAProduct : List Product -> Maybe Int -> (Product -> msg) -> Element msg
+pickAProduct prods selected msg =
     Input.radio []
         { onChange = msg
-        , options = List.map (\p -> Input.option (String.fromInt p.id) <| text p.name) prods
-        , selected = Nothing
+        , options = List.map (\p -> Input.option p <| text p.name) prods
+        , selected =
+            case selected of
+                Nothing ->
+                    Nothing
+
+                Just s ->
+                    List.head <| List.filter (\p -> p.id == s) prods
         , label = labelAbove [] (text "Product to edit")
         }
 
 
-pickProductByStringId : List Product -> String -> Maybe Product
-pickProductByStringId prods stringId =
-    List.filter (\p -> String.fromInt p.id == stringId) prods
-        |> List.head
-
-
-showEditInput : Maybe UserInputWithId -> List Category -> Element Msg
-showEditInput maybeUserInput cats =
-    case maybeUserInput of
+showEditInput : Maybe ( UserInputProduct, Int ) -> List Category -> Element Msg
+showEditInput maybeProd cats =
+    case maybeProd of
         Nothing ->
             el [] (text "Pick something to edit!")
 
@@ -185,7 +184,7 @@ viewDeleteStuff : Bool -> Maybe Int -> List Product -> Element Msg
 viewDeleteStuff isConfirmShowing maybeId prods =
     column [ centerX ]
         [ el [ Font.size 25 ] (text "Delete a product")
-        , pickAProduct prods (UpdatedDelete << pickProductByStringId prods)
+        , pickAProduct prods maybeId UpdatedDelete
         , showDeleteButton isConfirmShowing maybeId
         ]
 
@@ -220,8 +219,8 @@ type Msg
     | GotProds (WebData (List Product))
     | NewAction Action
     | UpdateUserInput UserInputProduct
-    | UpdatedEdit (Maybe Product)
-    | UpdatedDelete (Maybe Product)
+    | UpdatedEdit Product
+    | UpdatedDelete Product
     | CreateProduct Product
     | Edit Int Product
     | Delete Int
@@ -257,20 +256,10 @@ update msg model =
                     ( model, Cmd.none )
 
         UpdatedEdit newProduct ->
-            case newProduct of
-                Nothing ->
-                    ( { model | action = Editing Nothing }, Cmd.none )
-
-                Just prod ->
-                    ( { model | action = Editing <| Just ( Products.prodToString prod, prod.id ) }, Cmd.none )
+            ( { model | action = Editing <| Just ( Products.prodToString newProduct, newProduct.id ) }, Cmd.none )
 
         UpdatedDelete newProduct ->
-            case newProduct of
-                Nothing ->
-                    ( { model | action = Deleting False Nothing }, Cmd.none )
-
-                Just prod ->
-                    ( { model | action = Deleting False <| Just prod.id }, Cmd.none )
+            ( { model | action = Deleting False <| Just newProduct.id }, Cmd.none )
 
         CreateProduct prod ->
             ( model, Requests.submitProduct pass (RemoteData.fromResult >> Feedback) prod )

@@ -8,13 +8,11 @@
 
 module Form.Product exposing (..)
 
-import Category exposing (Category)
+import Category exposing (Category, CategoryId)
 import Element exposing (Element, column, text)
-import Element.Input as Input exposing (labelAbove, option)
-import Form.Category exposing (catsToOptions)
-import Html exposing (Html, option)
+import Element.Input as Input exposing (labelAbove)
+import Html exposing (Html)
 import Html.Attributes exposing (value)
-import Html.Events exposing (onInput)
 import Products exposing (Product, UserInputProduct)
 
 
@@ -47,69 +45,11 @@ productForm cats oldProduct msg =
             }
         , Input.radio []
             { onChange = msg << updateCategory oldProduct
-            , options = List.map (\c -> Input.option (Category.catIdToString c.id) <| text c.name) cats
-            , selected = Nothing
+            , options = List.map (\c -> Input.option c.id <| text c.name) cats
+            , selected = oldProduct.category
             , label = labelAbove [] (text "Category the product belongs to")
             }
         ]
-
-
-
-{-
-   div []
-       [ div []
-           [ text "Product name"
-           , br [] []
-           , input
-               [ type_ "text"
-               , value oldProduct.name
-               , onInput (msg << updateName oldProduct)
-               ]
-               []
-           ]
-       , br [] []
-       , div []
-           [ text "Size"
-           , br [] []
-           , input
-               [ type_ "text"
-               , value oldProduct.size
-               , onInput (msg << updateSize oldProduct)
-               ]
-               []
-           ]
-       , br [] []
-       , div []
-           [ text "Description"
-           , br [] []
-           , input
-               [ type_ "text"
-               , value oldProduct.description
-               , onInput (msg << updateDescription oldProduct)
-               ]
-               []
-           ]
-       , br [] []
-       , div []
-           [ text "Cost in cents"
-           , br [] []
-           , input
-               [ type_ "text"
-               , value oldProduct.price
-               , onInput (msg << updateCost oldProduct)
-               ]
-               []
-           ]
-       , br [] []
-       , div []
-           [ text "Category that it belongs to"
-           , br [] []
-           , select [ onInput (msg << updateCategory oldProduct) ]
-               (defaultOption :: catsToOptions cats)
-           ]
-       , br [] []
-       ]
--}
 
 
 defaultOption : Html msg
@@ -137,9 +77,9 @@ updateSize oldProd newSize =
     { oldProd | size = newSize }
 
 
-updateCategory : UserInputProduct -> String -> UserInputProduct
+updateCategory : UserInputProduct -> CategoryId -> UserInputProduct
 updateCategory oldProd newCat =
-    { oldProd | category = newCat }
+    { oldProd | category = Just newCat }
 
 
 prodsToOptions : List Product -> List (Html msg)
