@@ -7,7 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 
 
-buttonLabel : String -> List Attribute -> Element msg
+buttonLabel : String -> List (Attribute msg) -> Element msg
 buttonLabel txt attrs =
     el
         (attrs
