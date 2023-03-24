@@ -1,11 +1,11 @@
 module Pages.Home exposing (view)
 
 import Colorscheme exposing (light)
-import Element exposing (centerX, column, el, fill, layout, link, none, padding, paragraph, rgb, rgb255, row, spacing, text, width)
+import Element exposing (centerX, column, el, fill, layout, link, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Html exposing (Html, a, div, h2, p)
-import Html.Attributes exposing (href)
+import Html exposing (Html)
+import StyleLabels exposing (linkLabel)
 
 
 view : Html msg
@@ -25,22 +25,10 @@ view =
                 [ column
                     [ Font.color <| light.bg, centerX ]
                     [ text "This was made as a school project. Feel free to try it out! You can:"
-                    , link [ Font.color <| light.secondary, Element.mouseOver [ Font.color light.misc ] ]
-                        { url = "/menu"
-                        , label = text "Check out the menu"
-                        }
-                    , link [ Font.color <| light.secondary, Element.mouseOver [ Font.color light.misc ] ]
-                        { url = "/login"
-                        , label = text "Login to the admin page"
-                        }
-                    , link [ Font.color <| light.secondary, Element.mouseOver [ Font.color light.misc ] ]
-                        { url = "/adminCategories"
-                        , label = text "Change the categories"
-                        }
-                    , link [ Font.color <| light.secondary, Element.mouseOver [ Font.color light.misc ] ]
-                        { url = "/adminProducts"
-                        , label = text "Change the products"
-                        }
+                    , link [] { url = "/menu", label = linkLabel "Check out the menu" [] }
+                    , link [] { url = "/login", label = linkLabel "Login to the admin page" [] }
+                    , link [] { url = "/adminCategories", label = linkLabel "Change the categories" [] }
+                    , link [] { url = "/adminProducts", label = linkLabel "Change the products" [] }
                     , paragraph [ Font.color <| light.bg ]
                         [ text "You can always navigate using the header at the top of the page. If you plan on doing admin stuff, you need to log in, otherwise it will not work."
                         ]
@@ -62,17 +50,3 @@ view =
                     ]
                 ]
             ]
-
-
-
-{-
-   div []
-   [ h2 [] [text "Welcome to the website!"]
-   , p [] [text "This is a test to try and read and display some information from a database, using an expressjs backend."]
-   , a [href "/menu"] [text "go take a look at the menu!"]
-   , p [] [text "or"]
-   , a [href "/adminCategories"] [text "Manage categories"]
-   , p [] []
-   , a [href "/adminProducts"] [text "Manage products"]
-   ]
--}
