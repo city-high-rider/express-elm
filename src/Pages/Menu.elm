@@ -2,13 +2,13 @@ module Pages.Menu exposing (..)
 
 import Category exposing (Category, getCategories)
 import Colorscheme
-import Element exposing (Element, centerX, column, el, fill, height, layout, mouseOver, paragraph, row, spaceEvenly, spacing, text, width, wrappedRow)
+import Element exposing (Element, centerX, column, el, fill, paragraph, row, spaceEvenly, spacing, text, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button, checkbox)
 import ErrorViewing exposing (viewHttpErrorStyled)
-import Form.Checkout exposing (CheckoutInfo(..), CheckoutInput, ContactMethod(..), checkoutForm)
+import Form.Checkout exposing (Info, infoForm, verifyInfo)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
@@ -19,14 +19,19 @@ import StyleLabels exposing (buttonLabel, layoutWithHeader)
 -- init and model
 
 
-type alias Order =
-    List ( Product, Int )
+type alias Bundle =
+    ( Product, Int )
+
+
+type CheckoutInfo
+    = NotAsked
+    | Unverified Info
 
 
 type alias Model =
     { products : WebData (List Product) -- list of sections that are currently displayed
     , sections : WebData (List Section)
-    , cart : Order
+    , cart : List Bundle
     , checkoutInfo : CheckoutInfo
     }
 
@@ -120,17 +125,17 @@ viewSection prods section =
         ]
 
 
-viewCart : CheckoutInfo -> Order -> Element Msg
+viewCart : CheckoutInfo -> List Bundle -> Element Msg
 viewCart checkoutInfo cart =
     el [ centerX ] <|
         case cart of
             [] ->
                 el [ Font.color Colorscheme.light.bg ] (text "You haven't ordered anything yet!")
 
-            ords ->
+            bundles ->
                 column [ Font.color Colorscheme.light.bg ]
                     [ el [] (text "You have ordered:")
-                    , viewOrders ords
+                    , viewBundles bundles
                     , paragraph []
                         [ el [] (text "Your total comes out to: ")
                         , el [ Font.color Colorscheme.light.primary ] <|
@@ -139,14 +144,14 @@ viewCart checkoutInfo cart =
                                     (\x -> x / 100) <|
                                         toFloat <|
                                             List.sum <|
-                                                List.map (\( p, q ) -> p.price * q) ords
+                                                List.map (\( p, q ) -> p.price * q) bundles
                         ]
                     , checkout checkoutInfo cart
                     ]
 
 
-checkout : CheckoutInfo -> Order -> Element Msg
-checkout info order =
+checkout : CheckoutInfo -> List Bundle -> Element Msg
+checkout info cart =
     column []
         [ button [] { onPress = Just ToggleCheckout, label = buttonLabel "Checkout" [] }
         , case info of
@@ -154,17 +159,33 @@ checkout info order =
                 Element.none
 
             Unverified input ->
-                checkoutForm ChangedInput input
+                column []
+                    [ infoForm InfoChanged input
+                    , placeOrderButton input cart
+                    ]
         ]
 
 
-viewOrders : Order -> Element Msg
-viewOrders items =
-    column [] (List.map viewItem items)
+placeOrderButton : Info -> List Bundle -> Element Msg
+placeOrderButton info cart =
+    case verifyInfo info of
+        Err e ->
+            el [ Font.color Colorscheme.light.primary ] (text e)
+
+        Ok goodInfo ->
+            button []
+                { onPress = Just <| Ordered goodInfo cart
+                , label = buttonLabel "Submit order" []
+                }
 
 
-viewItem : ( Product, Int ) -> Element Msg
-viewItem ( prod, qty ) =
+viewBundles : List Bundle -> Element Msg
+viewBundles items =
+    column [] (List.map viewBundle items)
+
+
+viewBundle : ( Product, Int ) -> Element Msg
+viewBundle ( prod, qty ) =
     row []
         [ el [] (text (String.fromInt qty ++ "x " ++ prod.name))
         , button []
@@ -232,7 +253,8 @@ type Msg
     | ToggleSection Section Bool
     | ToggleCheckout
     | AddOrder ( Product, Int )
-    | ChangedInput CheckoutInput
+    | InfoChanged Info
+    | Ordered Info (List Bundle)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -268,13 +290,16 @@ update msg model =
         ToggleCheckout ->
             case model.checkoutInfo of
                 NotAsked ->
-                    ( { model | checkoutInfo = Unverified <| CheckoutInput "" "" NotSelected "" }, Cmd.none )
+                    ( { model | checkoutInfo = Unverified <| Info "" "" "" }, Cmd.none )
 
                 Unverified _ ->
                     ( { model | checkoutInfo = NotAsked }, Cmd.none )
 
-        ChangedInput newInput ->
-            ( { model | checkoutInfo = Unverified newInput }, Cmd.none )
+        InfoChanged newInfo ->
+            ( { model | checkoutInfo = Unverified newInfo }, Cmd.none )
+
+        Ordered info cart ->
+            ( model, Cmd.none )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
@@ -282,7 +307,7 @@ webDataListMap fn webdata =
     RemoteData.map (\ws -> List.map fn ws) webdata
 
 
-mergeOrder : Order -> ( Product, Int ) -> Order
+mergeOrder : List Bundle -> ( Product, Int ) -> List Bundle
 mergeOrder cart ( newProd, qty ) =
     case cart of
         [] ->

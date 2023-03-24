@@ -1,85 +1,74 @@
-module Form.Checkout exposing (CheckoutInfo(..), CheckoutInput, ContactMethod(..), checkoutForm)
+module Form.Checkout exposing (Info, infoForm, verifyInfo)
 
-import Element exposing (Element, column, el, text)
-import Element.Input as Input exposing (labelLeft, option)
-
-
-type CheckoutInfo
-    = NotAsked
-    | Unverified CheckoutInput
+import Element exposing (Element, column, text)
+import Element.Input as Input exposing (labelLeft)
 
 
-type ContactMethod
-    = NotSelected
-    | Phone
-    | Email
-    | Other
-
-
-type alias CheckoutInput =
+type alias Info =
     { name : String
     , surname : String
-    , contact : ContactMethod
-    , contactInfo : String
+    , phone : String
     }
 
 
-checkoutForm : (CheckoutInput -> msg) -> CheckoutInput -> Element msg
-checkoutForm msg input =
+infoForm : (Info -> msg) -> Info -> Element msg
+infoForm msg oldInfo =
     column []
         [ Input.text []
-            { onChange = msg << updateName input
-            , text = input.name
+            { onChange = msg << updateName oldInfo
             , placeholder = Nothing
-            , label = labelLeft [] (text "Your name")
+            , text = oldInfo.name
+            , label = labelLeft [] (text "Your first name")
             }
         , Input.text []
-            { onChange = msg << updateSurname input
-            , text = input.surname
+            { onChange = msg << updateLastname oldInfo
             , placeholder = Nothing
-            , label = labelLeft [] (text "Your surname")
+            , text = oldInfo.surname
+            , label = labelLeft [] (text "Your last name")
             }
-        , Input.radio []
-            { onChange = msg << updateContact input
-            , options = [ option Phone (text "Phone"), option Email (text "Email"), option Other (text "Other (Specify details in textbox)") ]
-            , selected =
-                case input.contact of
-                    NotSelected ->
-                        Nothing
-
-                    _ ->
-                        Just input.contact
-            , label = labelLeft [] (text "Contact method")
+        , Input.text []
+            { onChange = msg << updatePhone oldInfo
+            , placeholder = Nothing
+            , text = oldInfo.phone
+            , label = labelLeft [] (text "Your phone number")
             }
-        , case input.contact of
-            NotSelected ->
-                el [] (text "Please select a contact method")
-
-            _ ->
-                Input.text []
-                    { onChange = msg << updateContactInfo input
-                    , text = input.contactInfo
-                    , placeholder = Nothing
-                    , label = labelLeft [] (text "How will we contact you?")
-                    }
         ]
 
 
-updateContactInfo : CheckoutInput -> String -> CheckoutInput
-updateContactInfo old info =
-    { old | contactInfo = info }
-
-
-updateName : CheckoutInput -> String -> CheckoutInput
+updateName : Info -> String -> Info
 updateName old newName =
     { old | name = newName }
 
 
-updateSurname : CheckoutInput -> String -> CheckoutInput
-updateSurname old newName =
+updateLastname : Info -> String -> Info
+updateLastname old newName =
     { old | surname = newName }
 
 
-updateContact : CheckoutInput -> ContactMethod -> CheckoutInput
-updateContact old newCon =
-    { old | contact = newCon }
+updatePhone : Info -> String -> Info
+updatePhone old newPhone =
+    { old | phone = newPhone }
+
+
+verifyInfo : Info -> Result String Info
+verifyInfo info =
+    let
+        fname =
+            checkNotEmpty info.name "Enter your first name!"
+
+        lname =
+            checkNotEmpty info.surname "Enter your last name!"
+
+        phone =
+            checkNotEmpty info.phone "Enter your phone so we can contact you about your order!"
+    in
+    Result.map3 Info fname lname phone
+
+
+checkNotEmpty : String -> String -> Result String String
+checkNotEmpty tgt msg =
+    if tgt == "" then
+        Err msg
+
+    else
+        Ok tgt
