@@ -15,6 +15,10 @@ buttonLabel txt attrs =
                , Background.color Colorscheme.light.bg
                , padding 10
                , Border.rounded 8
+               , mouseOver
+                    [ Font.color Colorscheme.light.bg
+                    , Background.color Colorscheme.light.primary
+                    ]
                ]
         )
         (text txt)
