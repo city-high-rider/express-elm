@@ -1,10 +1,11 @@
-module StyleLabels exposing (buttonLabel, linkLabel)
+module StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 import Colorscheme
-import Element exposing (Attribute, Element, column, el, mouseOver, padding, row, text)
+import Element exposing (Attribute, Element, column, el, fill, layout, link, mouseOver, padding, row, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Html exposing (Html)
 
 
 buttonLabel : String -> List (Attribute msg) -> Element msg
@@ -33,3 +34,20 @@ linkLabel txt attrs =
                ]
         )
         (text txt)
+
+
+header : Element msg
+header =
+    row []
+        [ link [] { url = "/", label = linkLabel "Home" [] }
+        , link [] { url = "/menu", label = linkLabel "Menu" [] }
+        , link [] { url = "/login", label = linkLabel "Login" [] }
+        , link [] { url = "/adminCategories", label = linkLabel "Manage categories" [] }
+        , link [] { url = "/adminProducts", label = linkLabel "Manage products" [] }
+        ]
+
+
+layoutWithHeader : List (Attribute msg) -> Element msg -> Html msg
+layoutWithHeader attrs body =
+    layout attrs <|
+        column [ width fill ] [ header, body ]

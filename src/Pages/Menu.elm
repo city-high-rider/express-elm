@@ -11,6 +11,7 @@ import ErrorViewing exposing (viewHttpErrorStyled)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
+import StyleLabels exposing (layoutWithHeader)
 
 
 
@@ -52,7 +53,7 @@ init =
 
 view : Model -> Html Msg
 view model =
-    layout [ Background.color Colorscheme.light.fg ] <|
+    layoutWithHeader [ Background.color Colorscheme.light.fg ] <|
         let
             sectionsAndProducts =
                 RemoteData.map2 (\s p -> ( s, p )) model.sections model.products

@@ -5,12 +5,12 @@ import Element exposing (centerX, column, el, fill, layout, link, none, padding,
 import Element.Background as Background
 import Element.Font as Font
 import Html exposing (Html)
-import StyleLabels exposing (linkLabel)
+import StyleLabels exposing (layoutWithHeader, linkLabel)
 
 
 view : Html msg
 view =
-    layout [ Background.color <| light.fg ] <|
+    layoutWithHeader [ Background.color <| light.fg ] <|
         column
             [ width fill ]
             [ row [ centerX ]

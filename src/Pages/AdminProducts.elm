@@ -14,7 +14,7 @@ import Products exposing (Product, UserInputProduct, getProducts)
 import RemoteData exposing (WebData)
 import Requests
 import ServerResponse exposing (ServerResponse)
-import StyleLabels exposing (buttonLabel, linkLabel)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -52,7 +52,7 @@ emptyModel =
 
 view : Model -> Html Msg
 view model =
-    layout [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
+    layoutWithHeader [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
         column [ width fill, centerX ]
             [ let
                 serverResources =

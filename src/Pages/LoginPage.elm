@@ -10,7 +10,7 @@ import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (checkPassword)
 import ServerResponse exposing (ServerResponse)
-import StyleLabels exposing (buttonLabel, linkLabel)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -28,7 +28,7 @@ init =
 
 view : Model -> Html Msg
 view model =
-    layout [ Background.color Colorscheme.light.fg ] <|
+    layoutWithHeader [ Background.color Colorscheme.light.fg ] <|
         column
             [ spacing 10
             , padding 10

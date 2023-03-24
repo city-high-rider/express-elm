@@ -13,7 +13,7 @@ import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
 import ServerResponse exposing (ServerResponse)
-import StyleLabels exposing (buttonLabel, linkLabel)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -54,7 +54,7 @@ init credentials =
 
 view : Model -> Html Msg
 view model =
-    layout [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
+    layoutWithHeader [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
         column [ width fill, centerX ]
             [ case model.availableCats of
                 RemoteData.NotAsked ->
@@ -109,24 +109,22 @@ viewChoices =
 
 showRelevantForm : Model -> List Category -> Element Msg
 showRelevantForm model cats =
-    case model.userAction of
-        NotPicked ->
-            el [ Font.size 20 ] (text "Give me something to do !")
+    column [ centerX ] <|
+        case model.userAction of
+            NotPicked ->
+                [ el [ Font.size 20 ] (text "Give me something to do !") ]
 
-        Creating ->
-            column []
+            Creating ->
                 [ el [ Font.size 20 ] (text "Create a category")
                 , categoryForm model.workingCat
                 ]
 
-        Editing ->
-            column []
+            Editing ->
                 [ el [ Font.size 20 ] (text "Edit a category")
                 , editSection model.workingCat cats
                 ]
 
-        Deleting isConfirmShowing ->
-            column []
+            Deleting isConfirmShowing ->
                 [ el [ Font.size 20 ] (text "Remove a category")
                 , deleteForm isConfirmShowing model.workingCat cats
                 ]
@@ -212,13 +210,6 @@ pickCatFromIdList working cats =
         , selected = sel
         , label = Element.Input.labelAbove [] <| text "Select category"
         }
-
-
-
-{-
-   select [ onInput (ChangeWorkingCat << getCatById cats) ]
-       (option [ value "Nothing" ] [ text "select..." ] :: Form.Category.catsToOptions cats)
--}
 
 
 showEditFormOrNothing : WorkingCategory -> Element Msg
