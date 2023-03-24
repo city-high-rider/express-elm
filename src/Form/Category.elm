@@ -25,36 +25,28 @@
 module Form.Category exposing (..)
 
 import Category exposing (Category)
-import Html exposing (Html, br, div, input, text, option)
+import Element exposing (Element, column, text)
+import Element.Input as Input exposing (labelAbove)
+import Html exposing (Html, br, div, input, option)
 import Html.Attributes exposing (type_, value)
 import Html.Events exposing (onInput)
 
 
-categoryForm : Category -> (Category -> msg) -> Html msg
+categoryForm : Category -> (Category -> msg) -> Element msg
 categoryForm oldCategory msg =
-    div []
-        [ div []
-            [ text "Category name"
-            , br [] []
-            , input
-                [ type_ "text"
-                , value oldCategory.name
-                , onInput (msg << updateName oldCategory)
-                ]
-                []
-            ]
-        , br [] []
-        , div []
-            [ text "Units of size measurement"
-            , br [] []
-            , input
-                [ type_ "text"
-                , value oldCategory.units
-                , onInput (msg << updateUnits oldCategory)
-                ]
-                []
-            ]
-        , br [] []
+    column []
+        [ Input.text []
+            { onChange = msg << updateName oldCategory
+            , text = oldCategory.name
+            , placeholder = Nothing
+            , label = labelAbove [] (text "Category name")
+            }
+        , Input.text []
+            { onChange = msg << updateUnits oldCategory
+            , text = oldCategory.units
+            , placeholder = Nothing
+            , label = labelAbove [] (text "Units of measurement")
+            }
         ]
 
 
@@ -65,7 +57,7 @@ catsToOptions cats =
 
 catToOption : Category -> Html msg
 catToOption cat =
-    option [ value (String.fromInt <| Category.catIdToInt cat.id) ] [ text cat.name ]
+    option [ value (String.fromInt <| Category.catIdToInt cat.id) ] [ Html.text cat.name ]
 
 
 updateName : Category -> String -> Category

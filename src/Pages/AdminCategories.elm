@@ -1,15 +1,19 @@
 module Pages.AdminCategories exposing (..)
 
 import Category exposing (Category, getCategories)
-import ErrorViewing exposing (viewHttpError)
+import Colorscheme
+import Element exposing (Element, centerX, column, el, fill, layout, link, maximum, row, spacing, text, width)
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input exposing (button, option, radio)
+import ErrorViewing exposing (viewHttpErrorStyled)
 import Form.Category
-import Html exposing (..)
-import Html.Attributes exposing (href, type_, value)
-import Html.Events exposing (onClick, onInput)
-import Pages.AdminPageUtils exposing (showModelStatus)
+import Html exposing (Html)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (deleteCat, submitResult, updateCat)
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -50,83 +54,92 @@ init credentials =
 
 view : Model -> Html Msg
 view model =
-    case model.availableCats of
-        RemoteData.NotAsked ->
-            div []
-                [ h3 [] [ text "developer forgot to send an http request" ]
-                ]
+    layoutWithHeader [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
+        column [ width fill, centerX ]
+            [ case model.availableCats of
+                RemoteData.NotAsked ->
+                    el [ Font.size 30 ] (text "developer forgot to send an http request")
 
-        RemoteData.Loading ->
-            div []
-                [ h3 [] [ text "Getting data from the server!" ]
-                , p [] [ text "please wait..." ]
-                ]
-
-        RemoteData.Failure error ->
-            div []
-                [ h3 [] [ text "Unable to load data from the server!" ]
-                , viewHttpError error
-                ]
-
-        RemoteData.Success cats ->
-            case model.credentials of
-                Nothing ->
-                    div []
-                        [ h3 [] [ text "You are not logged in!" ]
-                        , p [] [ text "You need to be logged in to change the menu." ]
-                        , a [ href "/login" ] [ text "Login page" ]
+                RemoteData.Loading ->
+                    column []
+                        [ el [ Font.size 30 ] (text "Getting data from the server!")
+                        , text "please wait..."
                         ]
 
-                Just _ ->
-                    viewLoaded model cats
+                RemoteData.Failure error ->
+                    column []
+                        [ el [ Font.size 30 ] (text "Unable to load data from the server!")
+                        , viewHttpErrorStyled error
+                        ]
+
+                RemoteData.Success cats ->
+                    case model.credentials of
+                        Nothing ->
+                            column [ width fill, centerX, spacing 10 ]
+                                [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "You are not logged in!")
+                                , el [ centerX ] (text "You need to be logged in to change the menu.")
+                                , link [ centerX ] { url = "/login", label = linkLabel "Log in" [] }
+                                ]
+
+                        Just _ ->
+                            viewLoaded model cats
+            ]
 
 
-viewChoices : Html Msg
+viewChoices : Element Msg
 viewChoices =
-    div []
-        [ h2 [] [ text "What would you like to do?" ]
-        , button [ onClick (ChangeAction Creating) ] [ text "Create a category" ]
-        , button [ onClick (ChangeAction Editing) ] [ text "Edit a category" ]
-        , button [ onClick (ChangeAction (Deleting False)) ] [ text "Remove a category" ]
+    column [ centerX ]
+        [ el [ Font.size 30, centerX, Font.color Colorscheme.light.primary ] (text "What would you like to do?")
+        , row [ spacing 20 ]
+            [ button []
+                { onPress = Just <| ChangeAction Creating
+                , label = buttonLabel "Create a category" []
+                }
+            , button []
+                { onPress = Just <| ChangeAction Editing
+                , label = buttonLabel "Edit a category" []
+                }
+            , button []
+                { onPress = Just <| ChangeAction <| Deleting False
+                , label = buttonLabel "Delete a category" []
+                }
+            ]
         ]
 
 
-showRelevantForm : Model -> List Category -> Html Msg
+showRelevantForm : Model -> List Category -> Element Msg
 showRelevantForm model cats =
-    case model.userAction of
-        NotPicked ->
-            p [] [ text "Give me something to do !" ]
+    column [ centerX ] <|
+        case model.userAction of
+            NotPicked ->
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Give me something to do !") ]
 
-        Creating ->
-            div []
-                [ h2 [] [ text "Create a category" ]
+            Creating ->
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Create a category")
                 , categoryForm model.workingCat
                 ]
 
-        Editing ->
-            div []
-                [ h2 [] [ text "Edit a category" ]
+            Editing ->
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Edit a category")
                 , editSection model.workingCat cats
                 ]
 
-        Deleting isConfirmShowing ->
-            div []
-                [ h2 [] [ text "Remove a category" ]
-                , deleteForm cats
-                , confirmDelete model.workingCat isConfirmShowing
+            Deleting isConfirmShowing ->
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Remove a category")
+                , deleteForm isConfirmShowing model.workingCat cats
                 ]
 
 
-viewLoaded : Model -> List Category -> Html Msg
+viewLoaded : Model -> List Category -> Element Msg
 viewLoaded model cats =
-    div []
+    column [ width <| maximum 1000 fill, centerX ]
         [ viewChoices
         , showRelevantForm model cats
-        , showModelStatus model.status
+        , showModelStatusStyle model.status
         ]
 
 
-categoryForm : WorkingCategory -> Html Msg
+categoryForm : WorkingCategory -> Element Msg
 categoryForm workingCat =
     let
         cat =
@@ -137,68 +150,78 @@ categoryForm workingCat =
                 Selected c ->
                     c
     in
-    Html.form []
+    column []
         [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
-        , div []
-            [ button [ type_ "button", onClick (Submit Creating cat) ]
-                [ text "Create" ]
-            ]
+        , button [] { onPress = Just (Submit Creating cat), label = buttonLabel "Submit" [] }
         ]
 
 
-deleteForm : List Category -> Html Msg
-deleteForm cats =
-    Html.form []
-        [ pickCatFromIdList cats
-        , div []
-            [ button [ type_ "button", onClick (ToggleDeleteConfirm True) ]
-                [ text "Delete" ]
-            ]
+deleteForm : Bool -> WorkingCategory -> List Category -> Element Msg
+deleteForm confirmShowing working cats =
+    column []
+        [ pickCatFromIdList working cats
+        , case working of
+            NotSelected ->
+                el [] (text "pick something to delete first!")
+
+            Selected workingCat ->
+                column []
+                    [ button [] { onPress = Just (ToggleDeleteConfirm True), label = buttonLabel "Delete" [] }
+                    , confirmDelete workingCat confirmShowing
+                    ]
         ]
 
 
-confirmDelete : WorkingCategory -> Bool -> Html Msg
-confirmDelete workingCat isShowing =
+confirmDelete : Category -> Bool -> Element Msg
+confirmDelete cat isShowing =
     if not isShowing then
-        div [] []
+        Element.none
 
     else
-        case workingCat of
-            NotSelected ->
-                h3 [] [ text "pick something to delete first!" ]
-
-            Selected cat ->
-                div []
-                    [ p [] [ text "Are you sure?" ]
-                    , button [ onClick (ToggleDeleteConfirm False) ] [ text "No!" ]
-                    , button [ onClick (Delete cat) ] [ text "Yes!" ]
-                    ]
+        column []
+            [ el [] (text "Are you sure?")
+            , button [] { onPress = Just <| ToggleDeleteConfirm False, label = buttonLabel "No!" [] }
+            , button [] { onPress = Just <| Delete cat, label = buttonLabel "Yes!" [] }
+            ]
 
 
-editSection : WorkingCategory -> List Category -> Html Msg
+editSection : WorkingCategory -> List Category -> Element Msg
 editSection editingCat cats =
-    div []
-        [ pickCatFromIdList cats
+    column []
+        [ pickCatFromIdList editingCat cats
         , showEditFormOrNothing editingCat
         ]
 
 
-pickCatFromIdList : List Category -> Html Msg
-pickCatFromIdList cats =
-    select [ onInput (ChangeWorkingCat << getCatById cats) ]
-        (option [ value "Nothing" ] [ text "select..." ] :: Form.Category.catsToOptions cats)
+pickCatFromIdList : WorkingCategory -> List Category -> Element Msg
+pickCatFromIdList working cats =
+    let
+        sel =
+            case working of
+                NotSelected ->
+                    Nothing
+
+                Selected c ->
+                    Just <| Category.catIdToString c.id
+    in
+    radio []
+        { onChange = ChangeWorkingCat << getCatById cats
+        , options = List.map (\c -> (option <| Category.catIdToString c.id) (text c.name)) cats
+        , selected = sel
+        , label = Element.Input.labelAbove [] <| text "Select category"
+        }
 
 
-showEditFormOrNothing : WorkingCategory -> Html Msg
+showEditFormOrNothing : WorkingCategory -> Element Msg
 showEditFormOrNothing workingCat =
     case workingCat of
         NotSelected ->
-            h3 [] [ text "pick a category to edit!" ]
+            el [ Font.size 30 ] (text "pick a category to edit!")
 
         Selected cat ->
-            div []
+            column []
                 [ Form.Category.categoryForm cat (ChangeWorkingCat << Selected)
-                , button [ onClick (Submit Editing cat) ] [ text "Edit" ]
+                , button [] { onPress = Just <| Submit Editing cat, label = buttonLabel "Edit" [] }
                 ]
 
 
@@ -215,7 +238,8 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        pass = Maybe.withDefault "" model.credentials
+        pass =
+            Maybe.withDefault "" model.credentials
     in
     case msg of
         ChangeWorkingCat newcat ->
@@ -241,7 +265,7 @@ update msg model =
                     ( model, request pass (RemoteData.fromResult >> ServerFeedback) cat )
 
         Delete cat ->
-            ( model, deleteCat pass (RemoteData.fromResult >> ServerFeedback) cat.id)
+            ( model, deleteCat pass (RemoteData.fromResult >> ServerFeedback) cat.id )
 
         ServerFeedback feedback ->
             ( { emptyModel

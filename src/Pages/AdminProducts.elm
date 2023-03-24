@@ -1,16 +1,20 @@
 module Pages.AdminProducts exposing (..)
 
 import Category exposing (Category, getCategories)
+import Colorscheme
+import Element exposing (Element, centerX, column, el, fill, layout, link, paragraph, row, spacing, text, width)
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input as Input exposing (button, labelAbove)
 import ErrorViewing exposing (..)
 import Form.Product
-import Html exposing (Html, a, button, div, h3, option, p, select, text)
-import Html.Attributes exposing (href, selected, value)
-import Html.Events exposing (onClick, onInput)
-import Pages.AdminPageUtils exposing (showModelStatus)
-import Products exposing (Product, UserInputProduct, getProducts, prodToString)
+import Html exposing (Html)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
+import Products exposing (Product, UserInputProduct, getProducts)
 import RemoteData exposing (WebData)
 import Requests
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -25,12 +29,8 @@ type alias Model =
 type Action
     = NotPicked
     | Creating UserInputProduct
-    | Editing (Maybe UserInputWithId)
+    | Editing (Maybe ( UserInputProduct, Int ))
     | Deleting Bool (Maybe Int)
-
-
-type alias UserInputWithId =
-    ( UserInputProduct, Int )
 
 
 init : Maybe String -> ( Model, Cmd Msg )
@@ -52,149 +52,161 @@ emptyModel =
 
 view : Model -> Html Msg
 view model =
-    let
-        serverResources =
-            RemoteData.map2 (\c p -> ( c, p )) model.availableCats model.availableProds
-    in
-    case serverResources of
-        RemoteData.NotAsked ->
-            h3 [] [ text "The developer forgot to request resources from server!" ]
+    layoutWithHeader [ Background.color Colorscheme.light.fg, Font.color Colorscheme.light.bg ] <|
+        column [ width fill, centerX ]
+            [ let
+                serverResources =
+                    RemoteData.map2 (\c p -> ( c, p )) model.availableCats model.availableProds
+              in
+              case serverResources of
+                RemoteData.NotAsked ->
+                    el [] (text "The developer forgot to request resources from server!")
 
-        RemoteData.Loading ->
-            h3 [] [ text "Getting data from the server... please wait!" ]
+                RemoteData.Loading ->
+                    el [] (text "Getting data from the server... please wait!")
 
-        RemoteData.Failure err ->
-            div []
-                [ h3 [] [ text "Unable to get data from the server!" ]
-                , viewHttpError err
-                ]
-
-        RemoteData.Success ( cats, prods ) ->
-            case model.credentials of
-                Nothing ->
-                    div []
-                        [ h3 [] [ text "You are not logged in!" ]
-                        , p [] [ text "so your requests will not work. Login at" ]
-                        , a [ href "/login" ] [ text "this page" ]
+                RemoteData.Failure err ->
+                    column []
+                        [ el [] (text "Unable to get data from the server!")
+                        , viewHttpErrorStyled err
                         ]
 
-                Just _ ->
-                    div []
-                        [ h3 [] [text "What would you like to do?"]
-                        , showButtons
-                        , showRelevantForm model.action cats prods
-                        , showModelStatus model.status
-                        ]
+                RemoteData.Success ( cats, prods ) ->
+                    case model.credentials of
+                        Nothing ->
+                            column [ centerX ]
+                                [ el [ centerX, Font.size 30, Font.color Colorscheme.light.primary ] (text "You are not logged in!")
+                                , el [] (text "Your requests will not work. Login at")
+                                , link [] { url = "/login", label = linkLabel "Login" [] }
+                                ]
+
+                        Just _ ->
+                            column [ spacing 15, centerX ]
+                                [ el [ centerX, Font.color Colorscheme.light.primary, Font.size 30 ] (text "What would you like to do?")
+                                , showButtons
+                                , showRelevantForm model.action cats prods
+                                , showModelStatusStyle model.status
+                                ]
+            ]
 
 
-showButtons : Html Msg
+showButtons : Element Msg
 showButtons =
-    div []
-        [ button [ onClick <| NewAction <| Creating Products.empty ] [ text "Create new product" ]
-        , button [ onClick <| NewAction <| Editing Nothing ] [ text "Edit a product" ]
-        , button [ onClick <| NewAction <| Deleting False Nothing ] [ text "Remove a product" ]
+    row [ spacing 15 ]
+        [ button [] { onPress = Just <| NewAction <| Creating Products.empty, label = buttonLabel "Create new product" [] }
+        , button [] { onPress = Just <| NewAction <| Editing Nothing, label = buttonLabel "Edit a product" [] }
+        , button [] { onPress = Just <| NewAction <| Deleting False Nothing, label = buttonLabel "Remove a product" [] }
         ]
 
 
-showRelevantForm : Action -> List Category -> List Product -> Html Msg
+showRelevantForm : Action -> List Category -> List Product -> Element Msg
 showRelevantForm action cats prods =
-    case action of
-        NotPicked ->
-            h3 [] [ text "Give me something to do!" ]
+    column [ centerX ]
+        [ case action of
+            NotPicked ->
+                el [ Font.size 25 ] (text "Give me something to do!")
 
-        Creating uInput ->
-            creatingForm uInput cats
+            Creating uInput ->
+                creatingForm uInput cats
 
-        Editing maybeStuff ->
-            viewEditStuff maybeStuff cats prods
+            Editing maybeStuff ->
+                viewEditStuff maybeStuff cats prods
 
-        Deleting isConfirmShowing maybeId ->
-            viewDeleteStuff isConfirmShowing maybeId prods
+            Deleting isConfirmShowing maybeId ->
+                viewDeleteStuff isConfirmShowing maybeId prods
+        ]
 
 
-creatingForm : UserInputProduct -> List Category -> Html Msg
+creatingForm : UserInputProduct -> List Category -> Element Msg
 creatingForm uInput cats =
-    div []
-        [ h3 [] [ text "Create a product" ]
+    column [ centerX, spacing 10 ]
+        [ el [ Font.size 25 ] (text "Create a product")
         , Form.Product.productForm cats uInput UpdateUserInput
         , submitButton uInput CreateProduct
         ]
 
 
-submitButton : UserInputProduct -> (Product -> msg) -> Html msg
+submitButton : UserInputProduct -> (Product -> msg) -> Element msg
 submitButton userInput msg =
     case Products.userInputToProduct userInput of
         Err e ->
-            h3 [] [ text <| "Error: " ++ e ]
+            paragraph []
+                [ el [ Font.color Colorscheme.light.primary ] (text "Error: ")
+                , el [ Font.color Colorscheme.light.bg ] (text e)
+                ]
 
         Ok p ->
-            button [ onClick (msg p) ] [ text "Submit" ]
+            button [] { onPress = Just <| msg p, label = buttonLabel "submit" [] }
 
 
-viewEditStuff : Maybe UserInputWithId -> List Category -> List Product -> Html Msg
+viewEditStuff : Maybe ( UserInputProduct, Int ) -> List Category -> List Product -> Element Msg
 viewEditStuff maybeStuff cats prods =
-    div []
-        [ h3 [] [ text "Edit a product" ]
-        , pickAProduct prods (UpdatedEdit << pickProductByStringId prods)
+    column [ centerX ]
+        [ el [ Font.size 25 ] (text "Edit a product")
+        , pickAProduct prods (Maybe.map Tuple.second maybeStuff) UpdatedEdit
         , showEditInput maybeStuff cats
         ]
 
 
-pickAProduct : List Product -> (String -> msg) -> Html msg
-pickAProduct prods msg =
-    select [ onInput msg ]
-        (option [ value "Nothing", selected True ] [ text "Select..." ] :: Form.Product.prodsToOptions prods)
+pickAProduct : List Product -> Maybe Int -> (Product -> msg) -> Element msg
+pickAProduct prods selected msg =
+    Input.radio []
+        { onChange = msg
+        , options = List.map (\p -> Input.option p <| text p.name) prods
+        , selected =
+            case selected of
+                Nothing ->
+                    Nothing
+
+                Just s ->
+                    List.head <| List.filter (\p -> p.id == s) prods
+        , label = labelAbove [] (text "Product to edit")
+        }
 
 
-pickProductByStringId : List Product -> String -> Maybe Product
-pickProductByStringId prods stringId =
-    List.filter (\p -> String.fromInt p.id == stringId) prods
-        |> List.head
-
-
-showEditInput : Maybe UserInputWithId -> List Category -> Html Msg
-showEditInput maybeUserInput cats =
-    case maybeUserInput of
+showEditInput : Maybe ( UserInputProduct, Int ) -> List Category -> Element Msg
+showEditInput maybeProd cats =
+    case maybeProd of
         Nothing ->
-            h3 [] [ text "Pick something to edit!" ]
+            el [] (text "Pick something to edit!")
 
         Just ( uInput, id ) ->
-            div []
+            column []
                 [ Form.Product.productForm cats uInput UpdateUserInput
                 , submitButton uInput (Edit id)
                 ]
 
 
-viewDeleteStuff : Bool -> Maybe Int -> List Product -> Html Msg
+viewDeleteStuff : Bool -> Maybe Int -> List Product -> Element Msg
 viewDeleteStuff isConfirmShowing maybeId prods =
-    div []
-        [ h3 [] [ text "Delete a product" ]
-        , pickAProduct prods (UpdatedDelete << pickProductByStringId prods)
+    column [ centerX ]
+        [ el [ Font.size 25 ] (text "Delete a product")
+        , pickAProduct prods maybeId UpdatedDelete
         , showDeleteButton isConfirmShowing maybeId
         ]
 
 
-showDeleteButton : Bool -> Maybe Int -> Html Msg
+showDeleteButton : Bool -> Maybe Int -> Element Msg
 showDeleteButton isConfirmShowing maybeId =
     case maybeId of
         Nothing ->
-            h3 [] [ text "Pick something to delete!" ]
+            el [] (text "Pick something to delete!")
 
         Just id ->
             let
                 displayButton =
                     if isConfirmShowing then
-                        div []
-                            [ h3 [] [ text "Are you sure?" ]
-                            , button [ onClick <| ToggleConfirm False ] [ text "No!" ]
-                            , button [ onClick <| Delete id ] [ text "Yes!" ]
+                        column []
+                            [ el [] (text "Are you sure?")
+                            , button [] { onPress = Just <| ToggleConfirm False, label = buttonLabel "No!" [] }
+                            , button [] { onPress = Just <| Delete id, label = buttonLabel "Yes!" [] }
                             ]
 
                     else
-                        div [] []
+                        Element.none
             in
-            div []
-                [ button [ onClick <| ToggleConfirm True ] [ text "Delete!" ]
+            column []
+                [ button [] { onPress = Just <| ToggleConfirm True, label = buttonLabel "Delete!" [] }
                 , displayButton
                 ]
 
@@ -204,8 +216,8 @@ type Msg
     | GotProds (WebData (List Product))
     | NewAction Action
     | UpdateUserInput UserInputProduct
-    | UpdatedEdit (Maybe Product)
-    | UpdatedDelete (Maybe Product)
+    | UpdatedEdit Product
+    | UpdatedDelete Product
     | CreateProduct Product
     | Edit Int Product
     | Delete Int
@@ -216,9 +228,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        pass = Maybe.withDefault "" model.credentials
+        pass =
+            Maybe.withDefault "" model.credentials
     in
-    
     case msg of
         GotCats cats ->
             ( { model | availableCats = cats }, Cmd.none )
@@ -241,20 +253,10 @@ update msg model =
                     ( model, Cmd.none )
 
         UpdatedEdit newProduct ->
-            case newProduct of
-                Nothing ->
-                    ( { model | action = Editing Nothing }, Cmd.none )
-
-                Just prod ->
-                    ( { model | action = Editing <| Just ( Products.prodToString prod, prod.id ) }, Cmd.none )
+            ( { model | action = Editing <| Just ( Products.prodToString newProduct, newProduct.id ) }, Cmd.none )
 
         UpdatedDelete newProduct ->
-            case newProduct of
-                Nothing ->
-                    ( { model | action = Deleting False Nothing }, Cmd.none )
-
-                Just prod ->
-                    ( { model | action = Deleting False <| Just prod.id }, Cmd.none )
+            ( { model | action = Deleting False <| Just newProduct.id }, Cmd.none )
 
         CreateProduct prod ->
             ( model, Requests.submitProduct pass (RemoteData.fromResult >> Feedback) prod )

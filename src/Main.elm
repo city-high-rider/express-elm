@@ -99,28 +99,10 @@ initCurrentPage ( model, initialCmds ) =
     )
 
 
-header : Html msg
-header =
-    nav []
-        [ a [ href "/" ] [ text "Home" ]
-        , a [ href "/menu" ] [ text "Menu" ]
-        , a [ href "/login" ] [ text "Login" ]
-        , a [ href "/adminCategories" ] [ text "Edit categories" ]
-        , a [ href "/adminProducts" ] [ text "Edit products" ]
-        ]
-
-
-footer : Html msg
-footer =
-    div []
-        [ p [] [ text "Made by 19299" ]
-        ]
-
-
 view : Model -> Document Msg
 view model =
     { title = "Elm app"
-    , body = [ header, currentView model, footer ]
+    , body = [ currentView model ]
     }
 
 

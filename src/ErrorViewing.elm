@@ -1,5 +1,6 @@
-module ErrorViewing exposing (viewHttpError, httpErrorToString)
+module ErrorViewing exposing (httpErrorToString, viewHttpError, viewHttpErrorStyled)
 
+import Element exposing (Element)
 import Html exposing (Html, p, text)
 import Http
 
@@ -7,6 +8,11 @@ import Http
 viewHttpError : Http.Error -> Html msg
 viewHttpError err =
     p [] [ text <| httpErrorToString err ]
+
+
+viewHttpErrorStyled : Http.Error -> Element msg
+viewHttpErrorStyled err =
+    Element.text <| httpErrorToString err
 
 
 httpErrorToString : Http.Error -> String

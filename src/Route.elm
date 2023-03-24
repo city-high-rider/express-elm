@@ -1,6 +1,5 @@
 module Route exposing (..)
 
-import Category exposing (CategoryId, categoryParser)
 import Url exposing (Url)
 import Url.Parser exposing (..)
 
@@ -8,7 +7,7 @@ import Url.Parser exposing (..)
 type Route
     = NotFound
     | Home
-    | MenuRoute 
+    | MenuRoute
     | AdminCategories
     | AdminProducts
     | LoginRoute

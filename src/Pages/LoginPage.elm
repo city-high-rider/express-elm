@@ -1,12 +1,16 @@
 module Pages.LoginPage exposing (..)
 
-import Html exposing (Html, br, button, div, h3, input, p, text, a)
-import Html.Attributes exposing (type_, value, href)
-import Html.Events exposing (onClick, onInput)
-import Pages.AdminPageUtils exposing (showModelStatus)
+import Colorscheme
+import Element exposing (alignRight, centerX, column, fill, layout, link, maximum, padding, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input exposing (button, currentPassword)
+import Html exposing (Html)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (checkPassword)
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
@@ -24,17 +28,37 @@ init =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h3 [] [ text "Enter the admin password" ]
-        , input [ onInput ChangedInput, type_ "text", value model.input ] []
-        , button [ onClick Submit ] [ text "Enter" ]
-        , br [] []
-        , button [ onClick Logout ] [ text "Log out" ]
-        , br [] []
-        , showModelStatus model.status
-        , a [href "/adminCategories"] [text "Back to categories"]
-        , a [href "/adminProducts"] [text "Back to products"]
-        ]
+    layoutWithHeader [ Background.color Colorscheme.light.fg ] <|
+        column
+            [ spacing 10
+            , padding 10
+            , Font.color Colorscheme.light.bg
+            , width <| maximum 1000 fill
+            , centerX
+            ]
+            [ currentPassword []
+                { onChange = ChangedInput
+                , text = model.input
+                , placeholder = Nothing
+                , label =
+                    Element.Input.labelAbove
+                        [ Font.color Colorscheme.light.primary
+                        , Font.size 30
+                        , centerX
+                        ]
+                    <|
+                        text "Enter the admin password"
+                , show = True
+                }
+            , button [ alignRight ] { onPress = Just Submit, label = buttonLabel "submit" [] }
+            , button [ alignRight ] { onPress = Just Logout, label = buttonLabel "logout" [] }
+            , showModelStatusStyle model.status
+            , row [ spaceEvenly, width fill ]
+                [ link [] { url = "/adminCategories", label = linkLabel "Back to categories" [] }
+                , link [] { url = "/adminProducts", label = linkLabel "Back to products" [] }
+                , link [] { url = "/", label = linkLabel "Back to home" [] }
+                ]
+            ]
 
 
 type Msg
@@ -66,4 +90,4 @@ update msg model =
             ( { model | status = w }, Cmd.none, toSubmit )
 
         Logout ->
-            ( model, Cmd.none, Nothing )
+            ( { model | status = RemoteData.succeed <| ServerResponse.succeed "Logged out" }, Cmd.none, Nothing )
