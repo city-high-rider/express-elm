@@ -1,9 +1,8 @@
 module Pages.LoginPage exposing (..)
 
-import Colorscheme exposing (Colorscheme)
-import Element exposing (alignRight, centerX, column, el, fill, layout, link, maximum, padding, row, spaceEvenly, spacing, text, width)
+import Colorscheme
+import Element exposing (alignRight, centerX, column, fill, layout, link, maximum, padding, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button, currentPassword)
 import Html exposing (Html)
@@ -11,6 +10,7 @@ import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import RemoteData exposing (WebData)
 import Requests exposing (checkPassword)
 import ServerResponse exposing (ServerResponse)
+import StyleLabels exposing (buttonLabel, linkLabel)
 
 
 type alias Model =
@@ -50,38 +50,15 @@ view model =
                         text "Enter the admin password"
                 , show = True
                 }
-            , button [ alignRight ] { onPress = Just Submit, label = buttonLabel "submit" }
-            , button [ alignRight ] { onPress = Just Logout, label = buttonLabel "logout" }
+            , button [ alignRight ] { onPress = Just Submit, label = buttonLabel "submit" [] }
+            , button [ alignRight ] { onPress = Just Logout, label = buttonLabel "logout" [] }
             , showModelStatusStyle model.status
             , row [ spaceEvenly, width fill ]
-                [ link
-                    [ Font.color Colorscheme.light.secondary
-                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
-                    ]
-                    { url = "/adminCategories", label = text "Back to categories" }
-                , link
-                    [ Font.color Colorscheme.light.secondary
-                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
-                    ]
-                    { url = "/adminProducts", label = text "Back to products" }
-                , link
-                    [ Font.color Colorscheme.light.secondary
-                    , Element.mouseOver [ Font.color Colorscheme.light.misc ]
-                    ]
-                    { url = "/", label = text "Back to home" }
+                [ link [] { url = "/adminCategories", label = linkLabel "Back to categories" [] }
+                , link [] { url = "/adminProducts", label = linkLabel "Back to products" [] }
+                , link [] { url = "/", label = linkLabel "Back to home" [] }
                 ]
             ]
-
-
-buttonLabel : String -> Element.Element msg
-buttonLabel txt =
-    el
-        [ Background.color Colorscheme.light.bg
-        , padding 10
-        , Font.color Colorscheme.light.primary
-        , Border.rounded 8
-        ]
-        (text txt)
 
 
 type Msg
