@@ -1,6 +1,7 @@
 module Pages.Menu exposing (..)
 
 import Category exposing (Category, getCategories)
+import CheckoutInfo exposing (Info, verifyInfo)
 import Colorscheme
 import Element exposing (Element, centerX, column, el, fill, paragraph, row, spaceEvenly, spacing, text, width, wrappedRow)
 import Element.Background as Background
@@ -8,7 +9,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button, checkbox)
 import ErrorViewing exposing (viewHttpErrorStyled)
-import Form.Checkout exposing (Info, infoForm, verifyInfo)
+import Form.Checkout exposing (infoForm)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)

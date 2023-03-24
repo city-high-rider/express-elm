@@ -1,14 +1,8 @@
-module Form.Checkout exposing (Info, infoForm, verifyInfo)
+module Form.Checkout exposing (infoForm)
 
+import CheckoutInfo exposing (Info, verifyInfo)
 import Element exposing (Element, column, text)
 import Element.Input as Input exposing (labelLeft)
-
-
-type alias Info =
-    { name : String
-    , surname : String
-    , phone : String
-    }
 
 
 infoForm : (Info -> msg) -> Info -> Element msg
@@ -48,27 +42,3 @@ updateLastname old newName =
 updatePhone : Info -> String -> Info
 updatePhone old newPhone =
     { old | phone = newPhone }
-
-
-verifyInfo : Info -> Result String Info
-verifyInfo info =
-    let
-        fname =
-            checkNotEmpty info.name "Enter your first name!"
-
-        lname =
-            checkNotEmpty info.surname "Enter your last name!"
-
-        phone =
-            checkNotEmpty info.phone "Enter your phone so we can contact you about your order!"
-    in
-    Result.map3 Info fname lname phone
-
-
-checkNotEmpty : String -> String -> Result String String
-checkNotEmpty tgt msg =
-    if tgt == "" then
-        Err msg
-
-    else
-        Ok tgt
