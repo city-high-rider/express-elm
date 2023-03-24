@@ -112,9 +112,7 @@ header =
 
 footer : Html msg
 footer =
-    div []
-        [ p [] [ text "Made by 19299" ]
-        ]
+    p [] [ text "Made by 19299" ]
 
 
 view : Model -> Document Msg

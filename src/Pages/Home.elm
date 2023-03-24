@@ -1,7 +1,7 @@
 module Pages.Home exposing (view)
 
 import Colorscheme exposing (light)
-import Element exposing (centerX, column, el, fill, layout, link, padding, paragraph, row, spacing, text, width)
+import Element exposing (centerX, column, el, fill, layout, link, none, padding, paragraph, rgb, rgb255, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Html exposing (Html)
