@@ -1,7 +1,7 @@
 module Pages.Menu exposing (..)
 
-import Category exposing (Category, CategoryId, getCategories)
-import Colorscheme exposing (Colorscheme)
+import Category exposing (Category, getCategories)
+import Colorscheme
 import Element exposing (Element, centerX, column, el, fill, height, layout, mouseOver, paragraph, row, spaceEvenly, spacing, text, width, wrappedRow)
 import Element.Background as Background
 import Element.Border as Border
@@ -11,7 +11,7 @@ import ErrorViewing exposing (viewHttpErrorStyled)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
-import StyleLabels exposing (layoutWithHeader)
+import StyleLabels exposing (buttonLabel, layoutWithHeader)
 
 
 
@@ -19,13 +19,14 @@ import StyleLabels exposing (layoutWithHeader)
 
 
 type alias Order =
-    ( Product, Int )
+    List ( Product, Int )
 
 
 type alias Model =
     { products : WebData (List Product) -- list of sections that are currently displayed
     , sections : WebData (List Section)
-    , cart : List Order
+    , cart : Order
+    , checkoutInfo : CheckoutInfo
     }
 
 
@@ -40,9 +41,21 @@ type alias Section =
     }
 
 
+type CheckoutInfo
+    = NotAsked
+    | Unverified CheckoutInput
+
+
+type alias CheckoutInput =
+    { name : String
+    , surname : String
+    , contact : String
+    }
+
+
 init : ( Model, Cmd Msg )
 init =
-    ( Model RemoteData.Loading RemoteData.Loading []
+    ( Model RemoteData.Loading RemoteData.Loading [] NotAsked
     , Cmd.batch [ getProducts GotProds, getCategories GotCats ]
     )
 
@@ -74,7 +87,7 @@ view model =
             RemoteData.Success ( sections, products ) ->
                 column [ spaceEvenly, spacing 20, centerX, width fill ]
                     [ viewSections sections products
-                    , viewCart model.cart
+                    , viewCart model.checkoutInfo model.cart
                     ]
 
 
@@ -118,36 +131,56 @@ viewSection prods section =
         ]
 
 
-viewCart : List Order -> Element Msg
-viewCart orders =
-    case orders of
-        [] ->
-            el [ Font.color Colorscheme.light.bg ] (text "You haven't ordered anything yet!")
+viewCart : CheckoutInfo -> Order -> Element Msg
+viewCart checkoutInfo cart =
+    el [ centerX ] <|
+        case cart of
+            [] ->
+                el [ Font.color Colorscheme.light.bg ] (text "You haven't ordered anything yet!")
 
-        ords ->
-            column [ Font.color Colorscheme.light.bg ]
-                [ el [] (text "You have ordered:")
-                , viewOrders ords
-                , paragraph []
-                    [ el [] (text "Your total comes out to: ")
-                    , el [ Font.color Colorscheme.light.primary ] <|
-                        text <|
-                            String.fromFloat <|
-                                (\x -> x / 100) <|
-                                    toFloat <|
-                                        List.sum <|
-                                            List.map (\( p, q ) -> p.price * q) ords
+            ords ->
+                column [ Font.color Colorscheme.light.bg ]
+                    [ el [] (text "You have ordered:")
+                    , viewOrders ords
+                    , paragraph []
+                        [ el [] (text "Your total comes out to: ")
+                        , el [ Font.color Colorscheme.light.primary ] <|
+                            text <|
+                                String.fromFloat <|
+                                    (\x -> x / 100) <|
+                                        toFloat <|
+                                            List.sum <|
+                                                List.map (\( p, q ) -> p.price * q) ords
+                        ]
+                    , checkout checkoutInfo cart
                     ]
-                ]
 
 
-viewOrders : List Order -> Element Msg
-viewOrders orders =
-    column [] (List.map viewOrder orders)
+checkout : CheckoutInfo -> Order -> Element Msg
+checkout info order =
+    column []
+        [ button [] { onPress = Just ToggleCheckout, label = buttonLabel "Checkout" [] }
+        , case info of
+            NotAsked ->
+                Element.none
+
+            Unverified input ->
+                checkoutInputForm input order
+        ]
 
 
-viewOrder : Order -> Element Msg
-viewOrder ( prod, qty ) =
+checkoutInputForm : CheckoutInput -> Order -> Element Msg
+checkoutInputForm input cart =
+    Element.none
+
+
+viewOrders : Order -> Element Msg
+viewOrders items =
+    column [] (List.map viewItem items)
+
+
+viewItem : ( Product, Int ) -> Element Msg
+viewItem ( prod, qty ) =
     row []
         [ el [] (text (String.fromInt qty ++ "x " ++ prod.name))
         , button []
@@ -213,7 +246,8 @@ type Msg
     = GotProds (WebData (List Product))
     | GotCats (WebData (List Category))
     | ToggleSection Section Bool
-    | AddOrder Order
+    | ToggleCheckout
+    | AddOrder ( Product, Int )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -246,10 +280,13 @@ update msg model =
         AddOrder order ->
             ( { model | cart = mergeOrder model.cart order }, Cmd.none )
 
+        ToggleCheckout ->
+            case model.checkoutInfo of
+                NotAsked ->
+                    ( { model | checkoutInfo = Unverified <| CheckoutInput "" "" "" }, Cmd.none )
 
-
--- there's gotta be a more elegant way to do this... function composition or something.
--- I feel like I'm missing something obvious here.
+                Unverified _ ->
+                    ( { model | checkoutInfo = NotAsked }, Cmd.none )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
@@ -257,18 +294,18 @@ webDataListMap fn webdata =
     RemoteData.map (\ws -> List.map fn ws) webdata
 
 
-mergeOrder : List Order -> Order -> List Order
-mergeOrder orders ( prod, qty ) =
-    case orders of
+mergeOrder : Order -> ( Product, Int ) -> Order
+mergeOrder cart ( newProd, qty ) =
+    case cart of
         [] ->
-            [ ( prod, qty ) ]
+            [ ( newProd, qty ) ]
 
-        ( cp, cq ) :: xs ->
-            if cp == prod && cq + qty > 0 then
-                ( cp, cq + qty ) :: xs
+        ( hp, hq ) :: xs ->
+            if hp == newProd && hq + qty > 0 then
+                ( hp, hq + qty ) :: xs
 
-            else if cq + qty <= 0 then
+            else if hp == newProd && hq + qty <= 0 then
                 xs
 
             else
-                ( cp, cq ) :: mergeOrder xs ( prod, qty )
+                ( hp, hq ) :: mergeOrder xs ( newProd, qty )
