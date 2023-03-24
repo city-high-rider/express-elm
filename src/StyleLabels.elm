@@ -1,7 +1,7 @@
 module StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 import Colorscheme
-import Element exposing (Attribute, Element, column, el, fill, layout, link, mouseOver, padding, row, text, width)
+import Element exposing (Attribute, Element, centerX, column, el, fill, layout, link, mouseOver, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -38,12 +38,19 @@ linkLabel txt attrs =
 
 header : Element msg
 header =
-    row []
-        [ link [] { url = "/", label = linkLabel "Home" [] }
-        , link [] { url = "/menu", label = linkLabel "Menu" [] }
-        , link [] { url = "/login", label = linkLabel "Login" [] }
-        , link [] { url = "/adminCategories", label = linkLabel "Manage categories" [] }
-        , link [] { url = "/adminProducts", label = linkLabel "Manage products" [] }
+    row
+        [ padding 10
+        , Background.color Colorscheme.light.fgDarker
+        , width fill
+        , Border.roundEach { topLeft = 0, topRight = 0, bottomLeft = 16, bottomRight = 16 }
+        ]
+        [ row [ centerX, spacing 20 ]
+            [ link [] { url = "/", label = linkLabel "Home" [] }
+            , link [] { url = "/menu", label = linkLabel "Menu" [] }
+            , link [] { url = "/login", label = linkLabel "Login" [] }
+            , link [] { url = "/adminCategories", label = linkLabel "Manage categories" [] }
+            , link [] { url = "/adminProducts", label = linkLabel "Manage products" [] }
+            ]
         ]
 
 
