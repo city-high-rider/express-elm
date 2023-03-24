@@ -1,4 +1,4 @@
-module CheckoutInfo exposing (Info, verifyInfo)
+module CheckoutInfo exposing (Info, infoEncoder, verifyInfo)
 
 import Json.Encode as Encode
 
