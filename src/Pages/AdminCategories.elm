@@ -112,20 +112,20 @@ showRelevantForm model cats =
     column [ centerX ] <|
         case model.userAction of
             NotPicked ->
-                [ el [ Font.size 20 ] (text "Give me something to do !") ]
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Give me something to do !") ]
 
             Creating ->
-                [ el [ Font.size 20 ] (text "Create a category")
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Create a category")
                 , categoryForm model.workingCat
                 ]
 
             Editing ->
-                [ el [ Font.size 20 ] (text "Edit a category")
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Edit a category")
                 , editSection model.workingCat cats
                 ]
 
             Deleting isConfirmShowing ->
-                [ el [ Font.size 20 ] (text "Remove a category")
+                [ el [ Font.size 30, Font.color Colorscheme.light.primary ] (text "Remove a category")
                 , deleteForm isConfirmShowing model.workingCat cats
                 ]
 
