@@ -8,6 +8,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button, checkbox)
 import ErrorViewing exposing (viewHttpErrorStyled)
+import Form.Checkout exposing (CheckoutInfo(..), CheckoutInput, ContactMethod(..), checkoutForm)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
@@ -38,18 +39,6 @@ type alias Model =
 type alias Section =
     { category : Category
     , showing : Bool
-    }
-
-
-type CheckoutInfo
-    = NotAsked
-    | Unverified CheckoutInput
-
-
-type alias CheckoutInput =
-    { name : String
-    , surname : String
-    , contact : String
     }
 
 
@@ -165,13 +154,8 @@ checkout info order =
                 Element.none
 
             Unverified input ->
-                checkoutInputForm input order
+                checkoutForm ChangedInput input
         ]
-
-
-checkoutInputForm : CheckoutInput -> Order -> Element Msg
-checkoutInputForm input cart =
-    Element.none
 
 
 viewOrders : Order -> Element Msg
@@ -248,6 +232,7 @@ type Msg
     | ToggleSection Section Bool
     | ToggleCheckout
     | AddOrder ( Product, Int )
+    | ChangedInput CheckoutInput
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -283,10 +268,13 @@ update msg model =
         ToggleCheckout ->
             case model.checkoutInfo of
                 NotAsked ->
-                    ( { model | checkoutInfo = Unverified <| CheckoutInput "" "" "" }, Cmd.none )
+                    ( { model | checkoutInfo = Unverified <| CheckoutInput "" "" NotSelected "" }, Cmd.none )
 
                 Unverified _ ->
                     ( { model | checkoutInfo = NotAsked }, Cmd.none )
+
+        ChangedInput newInput ->
+            ( { model | checkoutInfo = Unverified newInput }, Cmd.none )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
