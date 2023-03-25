@@ -13,7 +13,10 @@ import Form.Checkout exposing (infoForm)
 import Html exposing (Html)
 import Products exposing (Product, getProducts)
 import RemoteData exposing (WebData)
+import Requests
+import ServerResponse exposing (ServerResponse)
 import StyleLabels exposing (buttonLabel, layoutWithHeader)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 
 
 
@@ -34,6 +37,7 @@ type alias Model =
     , sections : WebData (List Section)
     , cart : List Bundle
     , checkoutInfo : CheckoutInfo
+    , status : WebData ServerResponse
     }
 
 
@@ -50,7 +54,7 @@ type alias Section =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model RemoteData.Loading RemoteData.Loading [] NotAsked
+    ( Model RemoteData.Loading RemoteData.Loading [] NotAsked RemoteData.NotAsked
     , Cmd.batch [ getProducts GotProds, getCategories GotCats ]
     )
 
@@ -83,6 +87,7 @@ view model =
                 column [ spaceEvenly, spacing 20, centerX, width fill ]
                     [ viewSections sections products
                     , viewCart model.checkoutInfo model.cart
+                    , showModelStatusStyle model.status
                     ]
 
 
@@ -256,6 +261,7 @@ type Msg
     | AddOrder ( Product, Int )
     | InfoChanged Info
     | Ordered Info (List Bundle)
+    | ServerResponse (WebData ServerResponse)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -300,7 +306,10 @@ update msg model =
             ( { model | checkoutInfo = Unverified newInfo }, Cmd.none )
 
         Ordered info cart ->
-            ( model, Cmd.none )
+            ( { model | status = RemoteData.Loading }, Requests.placeOrder (RemoteData.fromResult >> ServerResponse) info cart )
+
+        ServerResponse res ->
+            ( { model | status = res }, Cmd.none )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
