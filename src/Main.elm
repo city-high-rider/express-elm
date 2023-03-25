@@ -9,6 +9,7 @@ import Pages.AdminProducts as ProductsPageFile
 import Pages.Home as HomePageFile
 import Pages.LoginPage as LoginPageFile
 import Pages.Menu as MenuPageFile
+import Pages.Orders as OrderPageFile
 import Route exposing (Route(..))
 import Url exposing (Url)
 
@@ -40,6 +41,7 @@ type Page
     | CategoriesPage CategoriesPageFile.Model
     | ProductsPage ProductsPageFile.Model
     | LoginPage LoginPageFile.Model
+    | OrdersPage OrderPageFile.Model
 
 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -87,6 +89,13 @@ initCurrentPage ( model, initialCmds ) =
                     in
                     ( ProductsPage prodModel, Cmd.map ProdMsg prodCmds )
 
+                OrdersRoute ->
+                    let
+                        ( iModel, iCmds ) =
+                            OrderPageFile.init model.credentials
+                    in
+                    ( OrdersPage iModel, Cmd.map OrderMsg iCmds )
+
                 LoginRoute ->
                     let
                         ( iModel, iCmds ) =
@@ -127,6 +136,9 @@ currentView model =
         LoginPage lModel ->
             Html.map LoginMsg (LoginPageFile.view lModel)
 
+        OrdersPage oModel ->
+            Html.map OrderMsg (OrderPageFile.view oModel)
+
 
 notFoundView : Html Msg
 notFoundView =
@@ -142,6 +154,7 @@ type Msg
     | CatMsg CategoriesPageFile.Msg
     | ProdMsg ProductsPageFile.Msg
     | LoginMsg LoginPageFile.Msg
+    | OrderMsg OrderPageFile.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -196,6 +209,15 @@ update msg model =
             in
             ( { model | page = LoginPage newModel, credentials = pass }
             , Cmd.map LoginMsg cmds
+            )
+
+        ( OrderMsg oMsg, OrdersPage oModel ) ->
+            let
+                ( newModel, cmds ) =
+                    OrderPageFile.update oMsg oModel
+            in
+            ( { model | page = OrdersPage newModel }
+            , Cmd.map OrderMsg cmds
             )
 
         ( _, _ ) ->

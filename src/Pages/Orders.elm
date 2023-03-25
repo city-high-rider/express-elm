@@ -17,8 +17,16 @@ type alias Model =
     }
 
 
-type OrderFilled
-    = Unresolved
+type alias OrderFilled =
+    { id : Int
+    , bundles : List BundleStatus
+    , info : Info
+    }
+
+
+type BundleStatus
+    = Unresolved ProductId
+    | Resolved ( Product, Int )
 
 
 init : Maybe String -> ( Model, Cmd Msg )
@@ -65,14 +73,44 @@ viewOrders model creds =
 
             RemoteData.Success ( o, p ) ->
                 column []
-                    [ List.map viewPopulatedOrds (populateOrds o p)
-                    ]
+                    (List.map viewPopulatedOrd (populateOrds o p))
         ]
 
 
 populateOrds : List OrderIds -> List Product -> List OrderFilled
 populateOrds orderIds products =
     List.map (populateOrd products) orderIds
+
+
+populateOrd : List Product -> OrderIds -> OrderFilled
+populateOrd prods ordId =
+    let
+        bundles =
+            List.map (resolveBundle prods) ordId.bundles
+    in
+    OrderFilled ordId.id bundles ordId.info
+
+
+resolveBundle : List Product -> ( ProductId, Int ) -> BundleStatus
+resolveBundle prods ( pid, qty ) =
+    case List.head <| List.filter (\p -> p.id == pid) prods of
+        Nothing ->
+            Unresolved pid
+
+        Just prod ->
+            Resolved ( prod, qty )
+
+
+viewPopulatedOrd : OrderFilled -> Element Msg
+viewPopulatedOrd order =
+    column []
+        [ paragraph []
+            [ el [] (text "Order from: ")
+            , el [] (text <| order.info.name ++ " " ++ order.info.surname)
+            , el [] (text "Contact: ")
+            , el [] (text order.info.phone)
+            ]
+        ]
 
 
 type Msg
