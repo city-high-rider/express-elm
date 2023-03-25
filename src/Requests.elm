@@ -4,7 +4,7 @@ import Category exposing (Category, catIdToString)
 import CheckoutInfo exposing (Bundle, Info, bundlesEncoder, infoEncoder)
 import Http exposing (..)
 import Json.Encode as Encode
-import Products exposing (Product)
+import Products exposing (Product, ProductId)
 import ServerResponse exposing (..)
 
 
@@ -51,12 +51,12 @@ submitProduct pass msg prod =
         }
 
 
-removeProduct : String -> (Result Http.Error ServerResponse -> msg) -> Int -> Cmd msg
+removeProduct : String -> (Result Http.Error ServerResponse -> msg) -> ProductId -> Cmd msg
 removeProduct pass msg id =
     Http.request
         { method = "DELETE"
         , headers = []
-        , url = "http://localhost:3000/deleteProd/" ++ String.fromInt id
+        , url = "http://localhost:3000/deleteProd/" ++ (String.fromInt <| Products.idToInt id)
         , body = reqWithPass Encode.null pass
         , expect = expectServerResponse msg
         , timeout = Nothing
@@ -64,10 +64,10 @@ removeProduct pass msg id =
         }
 
 
-editProduct : String -> (Result Http.Error ServerResponse -> msg) -> Product -> Int -> Cmd msg
+editProduct : String -> (Result Http.Error ServerResponse -> msg) -> Product -> ProductId -> Cmd msg
 editProduct pass msg newProd id =
     Http.post
-        { url = "http://localhost:3000/updateProd/" ++ String.fromInt id
+        { url = "http://localhost:3000/updateProd/" ++ (String.fromInt <| Products.idToInt id)
         , body = reqWithPass (Products.newProductEncoder newProd) pass
         , expect = expectServerResponse msg
         }

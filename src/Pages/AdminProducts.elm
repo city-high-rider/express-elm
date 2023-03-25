@@ -10,7 +10,7 @@ import ErrorViewing exposing (..)
 import Form.Product
 import Html exposing (Html)
 import Pages.AdminPageUtils exposing (showModelStatusStyle)
-import Products exposing (Product, UserInputProduct, getProducts)
+import Products exposing (Product, ProductId, UserInputProduct, getProducts)
 import RemoteData exposing (WebData)
 import Requests
 import ServerResponse exposing (ServerResponse)
@@ -29,8 +29,8 @@ type alias Model =
 type Action
     = NotPicked
     | Creating UserInputProduct
-    | Editing (Maybe ( UserInputProduct, Int ))
-    | Deleting Bool (Maybe Int)
+    | Editing (Maybe ( UserInputProduct, ProductId ))
+    | Deleting Bool (Maybe ProductId)
 
 
 init : Maybe String -> ( Model, Cmd Msg )
@@ -139,7 +139,7 @@ submitButton userInput msg =
             button [] { onPress = Just <| msg p, label = buttonLabel "submit" [] }
 
 
-viewEditStuff : Maybe ( UserInputProduct, Int ) -> List Category -> List Product -> Element Msg
+viewEditStuff : Maybe ( UserInputProduct, ProductId ) -> List Category -> List Product -> Element Msg
 viewEditStuff maybeStuff cats prods =
     column [ centerX ]
         [ el [ Font.size 25 ] (text "Edit a product")
@@ -148,7 +148,7 @@ viewEditStuff maybeStuff cats prods =
         ]
 
 
-pickAProduct : List Product -> Maybe Int -> (Product -> msg) -> Element msg
+pickAProduct : List Product -> Maybe ProductId -> (Product -> msg) -> Element msg
 pickAProduct prods selected msg =
     Input.radio []
         { onChange = msg
@@ -164,7 +164,7 @@ pickAProduct prods selected msg =
         }
 
 
-showEditInput : Maybe ( UserInputProduct, Int ) -> List Category -> Element Msg
+showEditInput : Maybe ( UserInputProduct, ProductId ) -> List Category -> Element Msg
 showEditInput maybeProd cats =
     case maybeProd of
         Nothing ->
@@ -177,7 +177,7 @@ showEditInput maybeProd cats =
                 ]
 
 
-viewDeleteStuff : Bool -> Maybe Int -> List Product -> Element Msg
+viewDeleteStuff : Bool -> Maybe ProductId -> List Product -> Element Msg
 viewDeleteStuff isConfirmShowing maybeId prods =
     column [ centerX ]
         [ el [ Font.size 25 ] (text "Delete a product")
@@ -186,7 +186,7 @@ viewDeleteStuff isConfirmShowing maybeId prods =
         ]
 
 
-showDeleteButton : Bool -> Maybe Int -> Element Msg
+showDeleteButton : Bool -> Maybe ProductId -> Element Msg
 showDeleteButton isConfirmShowing maybeId =
     case maybeId of
         Nothing ->
@@ -219,8 +219,8 @@ type Msg
     | UpdatedEdit Product
     | UpdatedDelete Product
     | CreateProduct Product
-    | Edit Int Product
-    | Delete Int
+    | Edit ProductId Product
+    | Delete ProductId
     | ToggleConfirm Bool
     | Feedback (WebData ServerResponse)
 

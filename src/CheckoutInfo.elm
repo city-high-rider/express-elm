@@ -56,6 +56,6 @@ bundlesEncoder bundles =
 bundleEncoder : Bundle -> Encode.Value
 bundleEncoder ( prod, qty ) =
     Encode.object
-        [ ( "productId", Encode.int prod.id )
+        [ ( "productId", Products.productIdEncoder prod.id )
         , ( "quantity", Encode.int qty )
         ]

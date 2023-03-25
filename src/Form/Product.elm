@@ -80,8 +80,3 @@ updateSize oldProd newSize =
 updateCategory : UserInputProduct -> CategoryId -> UserInputProduct
 updateCategory oldProd newCat =
     { oldProd | category = Just newCat }
-
-
-prodsToOptions : List Product -> List (Html msg)
-prodsToOptions prods =
-    List.map (\p -> Html.option [ value <| String.fromInt p.id ] [ Html.text p.name ]) prods

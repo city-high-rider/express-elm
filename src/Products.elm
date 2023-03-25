@@ -8,8 +8,13 @@ import Json.Encode as Encode
 import RemoteData exposing (WebData)
 
 
+type ProductId
+    = Unassigned
+    | Id Int
+
+
 type alias Product =
-    { id : Int
+    { id : ProductId
     , name : String
     , description : String
     , size : Int
@@ -57,7 +62,7 @@ userInputToProduct userInput =
         processDescription =
             checkNotEmpty "Description" userInput.description
     in
-    Result.map5 (Product -1) processName processDescription processSize processCost processCategory
+    Result.map5 (Product Unassigned) processName processDescription processSize processCost processCategory
 
 
 prodToString : Product -> UserInputProduct
@@ -92,6 +97,26 @@ checkNotEmpty label toCheck =
 -- decoders
 
 
+productIdDecoder : Decoder ProductId
+productIdDecoder =
+    Json.Decode.map (\i -> Id i) int
+
+
+idToInt : ProductId -> Int
+idToInt pid =
+    case pid of
+        Unassigned ->
+            -1
+
+        Id i ->
+            i
+
+
+productIdEncoder : ProductId -> Encode.Value
+productIdEncoder pid =
+    Encode.int <| idToInt pid
+
+
 productsDecoder : Decoder (List Product)
 productsDecoder =
     list productDecoder
@@ -100,7 +125,7 @@ productsDecoder =
 productDecoder : Decoder Product
 productDecoder =
     Json.Decode.succeed Product
-        |> required "id" int
+        |> required "id" productIdDecoder
         |> required "name" string
         |> required "description" string
         |> required "size" int
