@@ -2,7 +2,7 @@ module Pages.AdminProducts exposing (..)
 
 import Category exposing (Category, getCategories)
 import Colorscheme
-import Element exposing (Element, centerX, column, el, fill, layout, link, paragraph, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, link, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input exposing (button, labelAbove)
