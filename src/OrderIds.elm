@@ -1,36 +1,50 @@
-module OrderIds exposing (OrderIds, getOrders)
+module OrderIds exposing (Order, getOrders)
 
-import CheckoutInfo exposing (Info, bundlesDecoder, infoDecoder)
+import CheckoutInfo exposing (Info, infoDecoder)
 import Http
 import Json.Decode as Decode exposing (Decoder, int)
 import Json.Decode.Pipeline exposing (required)
-import Products exposing (ProductId)
+import Products exposing (Product)
 import RemoteData exposing (WebData)
+import Products exposing (productDecoder)
 
 
-type alias OrderIds =
-    { info : Info
-    , bundles : List ( ProductId, Int )
-    , id : Int
+type alias Order =
+    { id : Int
+    , info : Info
+    , bundles : List ( Product, Int )
     }
 
 
-getOrders : (WebData (List OrderIds) -> msg) -> Cmd msg
+getOrders : (WebData (List Order) -> msg) -> Cmd msg
 getOrders msg =
     Http.get
         { url = "http://localhost:3000/getOrders"
-        , expect = Http.expectJson (RemoteData.fromResult >> msg) orderIdsDecoder
+        , expect = Http.expectJson (RemoteData.fromResult >> msg) ordersDecoder
         }
 
 
-orderIdsDecoder : Decoder (List OrderIds)
-orderIdsDecoder =
-    Decode.list orderIdDecoder
+ordersDecoder : Decoder (List Order)
+ordersDecoder =
+    Decode.list orderDecoder
 
 
-orderIdDecoder : Decoder OrderIds
-orderIdDecoder =
-    Decode.succeed OrderIds
+orderDecoder : Decoder Order
+orderDecoder =
+    Decode.succeed Order
+        |> required "id" int
         |> required "info" infoDecoder
         |> required "bundles" bundlesDecoder
-        |> required "id" int
+
+
+bundlesDecoder : Decoder (List (Product, Int))
+bundlesDecoder =
+    Decode.list bundleDecoder
+
+
+bundleDecoder : Decoder (Product, Int)
+bundleDecoder =
+    Decode.succeed (\p q -> (p,q))
+        |> required "product" productDecoder
+        |> required "quantity" int
+

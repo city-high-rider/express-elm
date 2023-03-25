@@ -54,25 +54,34 @@ dbAll = (query, params) => {
     })
 }
 
-app.get('/test', async function (req, res) {
+dbOne = (query, params) => {
+    return new Promise((resolve, reject) => {
+        db.get(query, params, (err, row) => {
+            if (err) return reject(err);
+            resolve(row)
+        })
+    })
+}
+
+app.get('/getOrders', async function (req, res) {
     let orders = await dbAll("SELECT * FROM orders", []);
     let mappedOrders = await Promise.all(orders.map(async function(order) {
         let relevantBundles = await dbAll("SELECT * FROM bundles WHERE orderId = ?", [order.id]);
         let mappedBundles = await Promise.all(relevantBundles.map(async function(bundle) {
-            let relevantProducts = await dbAll("SELECT * FROM product WHERE id = ?", [bundle.product])
+            let relevantProduct = await dbOne("SELECT * FROM product WHERE id = ?", [bundle.product])
             return (
-                { product: relevantProducts[0]
+                { product: relevantProduct
                 , quantity: bundle.quantity
                 } 
             )
         }))
         return (
-            { info :
+            { id: order.id
+            , info :
                 { name: order.fname
                 , surname: order.lname
                 , phone: order.phone
                 }
-            , id: order.id
             , bundles: mappedBundles
             }
         )

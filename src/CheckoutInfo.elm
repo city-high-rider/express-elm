@@ -66,8 +66,8 @@ bundleEncoder ( prod, qty ) =
 infoDecoder : Decoder Info
 infoDecoder =
     succeed Info
-        |> required "fname" string
-        |> required "lname" string
+        |> required "name" string
+        |> required "surname" string
         |> required "phone" string
 
 
