@@ -1,6 +1,7 @@
-module CheckoutInfo exposing (Info, infoEncoder, verifyInfo)
+module CheckoutInfo exposing (Bundle, Info, bundlesEncoder, infoEncoder, verifyInfo)
 
 import Json.Encode as Encode
+import Products exposing (Product)
 
 
 type alias Info =
@@ -8,6 +9,10 @@ type alias Info =
     , surname : String
     , phone : String
     }
+
+
+type alias Bundle =
+    ( Product, Int )
 
 
 verifyInfo : Info -> Result String Info
@@ -40,4 +45,17 @@ infoEncoder info =
         [ ( "fname", Encode.string info.name )
         , ( "lname", Encode.string info.surname )
         , ( "phone", Encode.string info.phone )
+        ]
+
+
+bundlesEncoder : List Bundle -> Encode.Value
+bundlesEncoder bundles =
+    Encode.list bundleEncoder bundles
+
+
+bundleEncoder : Bundle -> Encode.Value
+bundleEncoder ( prod, qty ) =
+    Encode.object
+        [ ( "productId", Encode.int prod.id )
+        , ( "quantity", Encode.int qty )
         ]

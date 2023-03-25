@@ -1,6 +1,7 @@
 module Requests exposing (..)
 
 import Category exposing (Category, catIdToString)
+import CheckoutInfo exposing (Bundle, Info, bundlesEncoder, infoEncoder)
 import Http exposing (..)
 import Json.Encode as Encode
 import Products exposing (Product)
@@ -19,6 +20,17 @@ reqWithPass stuff pass =
 expectServerResponse : (Result Http.Error ServerResponse -> msg) -> Http.Expect msg
 expectServerResponse msg =
     Http.expectJson msg responseDecoder
+
+
+placeOrder : (Result Http.Error ServerResponse -> msg) -> Info -> List Bundle -> Cmd msg
+placeOrder msg info bundles =
+    Http.post
+        { url = "http://localhost:3000/newOrder"
+        , body =
+            Http.jsonBody <|
+                Encode.object [ ( "info", infoEncoder info ), ( "bundles", bundlesEncoder bundles ) ]
+        , expect = expectServerResponse msg
+        }
 
 
 submitResult : String -> (Result Http.Error ServerResponse -> msg) -> Category -> Cmd msg
