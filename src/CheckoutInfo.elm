@@ -1,7 +1,9 @@
-module CheckoutInfo exposing (Bundle, Info, bundlesEncoder, infoEncoder, verifyInfo)
+module CheckoutInfo exposing (Bundle, Info, bundlesDecoder, bundlesEncoder, infoDecoder, infoEncoder, verifyInfo)
 
+import Json.Decode as Decode exposing (Decoder, int, string, succeed)
+import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Products exposing (Product)
+import Products exposing (Product, ProductId, productIdDecoder)
 
 
 type alias Info =
@@ -59,3 +61,21 @@ bundleEncoder ( prod, qty ) =
         [ ( "productId", Products.productIdEncoder prod.id )
         , ( "quantity", Encode.int qty )
         ]
+
+
+infoDecoder : Decoder Info
+infoDecoder =
+    succeed Info
+        |> required "fname" string
+        |> required "lname" string
+        |> required "phone" string
+
+
+bundlesDecoder : Decoder (List ( ProductId, Int ))
+bundlesDecoder =
+    Decode.list bundleDecoder
+
+
+bundleDecoder : Decoder ( ProductId, Int )
+bundleDecoder =
+    Decode.map2 (\p i -> ( p, i )) productIdDecoder int
