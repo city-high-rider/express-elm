@@ -45,6 +45,41 @@ app.get('/categories', (req, res) => {
     })
 })
 
+dbAll = (query, params) => {
+    return new Promise((resolve, reject) => {
+        db.all(query, params, (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows);
+        })
+    })
+}
+
+app.get('/test', async function (req, res) {
+    let orders = await dbAll("SELECT * FROM orders", []);
+    let mappedOrders = await Promise.all(orders.map(async function(order) {
+        let relevantBundles = await dbAll("SELECT * FROM bundles WHERE orderId = ?", [order.id]);
+        let mappedBundles = await Promise.all(relevantBundles.map(async function(bundle) {
+            let relevantProducts = await dbAll("SELECT * FROM product WHERE id = ?", [bundle.product])
+            return (
+                { product: relevantProducts[0]
+                , quantity: bundle.quantity
+                } 
+            )
+        }))
+        return (
+            { info :
+                { name: order.fname
+                , surname: order.lname
+                , phone: order.phone
+                }
+            , id: order.id
+            , bundles: mappedBundles
+            }
+        )
+    }))
+    res.json(mappedOrders)
+})
+
 function runBody(res, action, err) {
     return (err) => {
         if (err) {
