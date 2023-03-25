@@ -100,6 +100,37 @@ app.post('/checkPass/:pass', (req, res) => {
 
 })
 
+app.post('/newOrder', (req,res) => {
+    db.run("INSERT INTO orders (fname, lname, phone) VALUES (?, ?, ?)"
+        , [req.body.info.fname, req.body.info.lname, req.body.info.phone]
+        // now, for some reason if this function uses "() => {}" notation,
+        // the this.lasID property is not defined.
+        , function (err) {
+            if (err) {
+                res.json({success: false, message: "Sqlite error"})
+                return;
+            }
+            // once we inserted the order info we need to retreive its id and 
+            // insert the bundles
+            const orderId = this.lastID
+            const bundles = req.body.bundles
+            bundles.forEach(bundle => {
+               db.run("INSERT INTO bundles (product, quantity, orderId) VALUES (?, ?, ?)"
+                   , [bundle.productId, bundle.quantity, orderId]
+                   , (err) => {
+                        if (err) {
+                            console.log("error when inserting bundle");
+                            console.log(err);
+                            res.json({success: false, message: "sqlite error"})
+                            return;
+                        }
+                   }
+               ) 
+            });
+        res.json({success: true, message: "inserted order"})
+        })
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
