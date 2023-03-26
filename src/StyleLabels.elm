@@ -50,6 +50,7 @@ header =
             , link [] { url = "/login", label = linkLabel "Login" [] }
             , link [] { url = "/adminCategories", label = linkLabel "Manage categories" [] }
             , link [] { url = "/adminProducts", label = linkLabel "Manage products" [] }
+            , link [] { url = "/orders", label = linkLabel "Manage orders" [] }
             ]
         ]
 
