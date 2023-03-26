@@ -57,6 +57,7 @@ view model =
                 [ link [] { url = "/adminCategories", label = linkLabel "Back to categories" [] }
                 , link [] { url = "/adminProducts", label = linkLabel "Back to products" [] }
                 , link [] { url = "/", label = linkLabel "Back to home" [] }
+                , link [] { url = "/orders", label = linkLabel "Back to orders" [] }
                 ]
             ]
 
