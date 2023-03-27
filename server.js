@@ -175,6 +175,26 @@ app.post('/newOrder', (req,res) => {
         })
 })
 
+app.post('/reject/:id', (req, res) => {
+    if (req.body.pass != super_secret_password) {
+        res.json({success:false,message:"Wrong password"});
+        return;
+    }
+    db.run("DELETE FROM orders WHERE id = ?", [req.params.id], (err) => {
+        if ( err ) {
+            res.json({success:false, message:"sqlite error"})
+            return;
+        } 
+        db.run("DELETE FROM bundles WHERE orderId = ?", [req.params.id], (err) => {
+            if ( err ) {
+                res.json({success:false,message:"sqlite error"})
+                return;
+            }
+            res.json({success:true,message:"Rejected order and relevant bundles"})
+        })
+    })
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })

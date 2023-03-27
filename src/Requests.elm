@@ -5,6 +5,7 @@ import CheckoutInfo exposing (Bundle, Info, bundlesEncoder, infoEncoder)
 import Http exposing (..)
 import Json.Encode as Encode
 import Products exposing (Product, ProductId)
+import RemoteData exposing (WebData)
 import ServerResponse exposing (..)
 
 
@@ -20,6 +21,17 @@ reqWithPass stuff pass =
 expectServerResponse : (Result Http.Error ServerResponse -> msg) -> Http.Expect msg
 expectServerResponse msg =
     Http.expectJson msg responseDecoder
+
+
+rejectOrder : (WebData ServerResponse -> msg) -> String -> Int -> String -> Cmd msg
+rejectOrder msg pass id _ =
+    Http.post
+        { url = "http://localhost:3000/reject/" ++ String.fromInt id
+        , body =
+            Http.jsonBody <|
+                Encode.object [ ( "pass", Encode.string pass ) ]
+        , expect = expectServerResponse (RemoteData.fromResult >> msg)
+        }
 
 
 placeOrder : (Result Http.Error ServerResponse -> msg) -> Info -> List Bundle -> Cmd msg
