@@ -52,8 +52,8 @@ view model =
                     ]
 
             Just creds ->
-                column [ centerX ]
-                    [ showModelStatusStyle model.status
+                column [ centerX, spacing 20 ]
+                    [ el [ Font.size 25, Font.color Colorscheme.light.primary ] (showModelStatusStyle model.status)
                     , viewOrders model creds
                     ]
 
@@ -101,7 +101,7 @@ viewOrder creds sec =
             , button [] { onPress = Just <| ToggleSection sec, label = buttonLabel "expand" [] }
             ]
         , if sec.showing then
-            column [ Background.color Colorscheme.light.fgDarker ]
+            column [ Background.color Colorscheme.light.fgDarker, width fill ]
                 [ viewBundles creds sec sec.order.bundles
                 ]
 
@@ -227,7 +227,7 @@ update msg model =
             ( model, rejectOrder ServerResponse pass id reason )
 
         ServerResponse res ->
-            ( { model | status = res }, Cmd.none )
+            ( { model | status = res }, getOrders GotOrds )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)
