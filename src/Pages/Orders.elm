@@ -5,30 +5,35 @@ import Colorscheme exposing (Colorscheme)
 import Element exposing (Element, centerX, column, el, fill, link, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input exposing (button)
+import Element.Input as Input exposing (button, labelAbove)
 import ErrorViewing exposing (viewHttpErrorStyled)
 import Html exposing (Html)
 import OrderIds exposing (Order, getOrders)
+import Pages.AdminPageUtils exposing (showModelStatusStyle)
 import Products exposing (Product)
 import RemoteData exposing (WebData)
+import Requests exposing (rejectOrder)
+import ServerResponse exposing (ServerResponse)
 import StyleLabels exposing (buttonLabel, layoutWithHeader, linkLabel)
 
 
 type alias Model =
     { credentials : Maybe String
-    , availableOrders : WebData (List Section)
+    , availableSections : WebData (List Section)
+    , status : WebData ServerResponse
     }
 
 
 type alias Section =
     { order : Order
     , showing : Bool
+    , rejectReason : Maybe String
     }
 
 
 init : Maybe String -> ( Model, Cmd Msg )
 init pass =
-    ( Model pass RemoteData.Loading
+    ( Model pass RemoteData.Loading RemoteData.NotAsked
     , getOrders GotOrds
     )
 
@@ -48,14 +53,15 @@ view model =
 
             Just creds ->
                 column [ centerX ]
-                    [ viewOrders model creds
+                    [ showModelStatusStyle model.status
+                    , viewOrders model creds
                     ]
 
 
 viewOrders : Model -> String -> Element Msg
 viewOrders model creds =
     column []
-        [ case model.availableOrders of
+        [ case model.availableSections of
             RemoteData.NotAsked ->
                 el [] (text "developer forgot to send http request")
 
@@ -70,12 +76,12 @@ viewOrders model creds =
 
             RemoteData.Success orders ->
                 column [ spacing 10 ]
-                    (List.map viewOrder orders)
+                    (List.map (viewOrder creds) orders)
         ]
 
 
-viewOrder : Section -> Element Msg
-viewOrder sec =
+viewOrder : String -> Section -> Element Msg
+viewOrder creds sec =
     column []
         [ row [ width fill ]
             [ column [ width fill ]
@@ -96,7 +102,7 @@ viewOrder sec =
             ]
         , if sec.showing then
             column [ Background.color Colorscheme.light.fgDarker ]
-                [ viewBundles sec.order.bundles
+                [ viewBundles creds sec sec.order.bundles
                 ]
 
           else
@@ -104,10 +110,51 @@ viewOrder sec =
         ]
 
 
-viewBundles : List ( Product, Int ) -> Element msg
-viewBundles bundles =
+showRejectForm : String -> Section -> Element Msg
+showRejectForm pass sec =
+    case sec.rejectReason of
+        Nothing ->
+            Element.none
+
+        Just s ->
+            column []
+                [ Input.text []
+                    { onChange = UpdateReject sec
+                    , text = s
+                    , placeholder = Nothing
+                    , label = labelAbove [] (text "Why?")
+                    }
+                , showRejectOrError pass sec s
+                ]
+
+
+showRejectOrError : String -> Section -> String -> Element Msg
+showRejectOrError pass section reason =
+    if reason == "" then
+        el [] (text "Please specify a reason!")
+
+    else
+        button []
+            { onPress = Just <| RejectOrder pass section.order.id reason
+            , label = buttonLabel "Go!" []
+            }
+
+
+viewBundles : String -> Section -> List ( Product, Int ) -> Element Msg
+viewBundles pass parent bundles =
     column []
-        (List.map viewBundle bundles)
+        (List.map viewBundle bundles
+            ++ [ button []
+                    { onPress = Just <| StartRejecting parent
+                    , label = buttonLabel "Reject" []
+                    }
+               , showRejectForm pass parent
+               , button []
+                    { onPress = Nothing
+                    , label = buttonLabel "Mark complete" []
+                    }
+               ]
+        )
 
 
 viewBundle : ( Product, Int ) -> Element msg
@@ -123,13 +170,17 @@ viewBundle ( prod, qty ) =
 type Msg
     = GotOrds (WebData (List Order))
     | ToggleSection Section
+    | StartRejecting Section
+    | UpdateReject Section String
+    | RejectOrder String Int String
+    | ServerResponse (WebData ServerResponse)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotOrds ords ->
-            ( { model | availableOrders = webDataListMap (\o -> Section o False) ords }, Cmd.none )
+            ( { model | availableSections = webDataListMap (\o -> Section o False Nothing) ords }, Cmd.none )
 
         ToggleSection sec ->
             let
@@ -141,7 +192,42 @@ update msg model =
                     else
                         s
             in
-            ( { model | availableOrders = webDataListMap fn model.availableOrders }, Cmd.none )
+            ( { model | availableSections = webDataListMap fn model.availableSections }, Cmd.none )
+
+        StartRejecting sec ->
+            let
+                fn : Section -> Section
+                fn s =
+                    if s == sec then
+                        case s.rejectReason of
+                            Nothing ->
+                                { s | rejectReason = Just "" }
+
+                            Just _ ->
+                                { s | rejectReason = Nothing }
+
+                    else
+                        s
+            in
+            ( { model | availableSections = webDataListMap fn model.availableSections }, Cmd.none )
+
+        UpdateReject sec reason ->
+            let
+                fn : Section -> Section
+                fn s =
+                    if s == sec then
+                        { s | rejectReason = Just reason }
+
+                    else
+                        s
+            in
+            ( { model | availableSections = webDataListMap fn model.availableSections }, Cmd.none )
+
+        RejectOrder pass id reason ->
+            ( model, rejectOrder ServerResponse pass id reason )
+
+        ServerResponse res ->
+            ( { model | status = res }, Cmd.none )
 
 
 webDataListMap : (a -> b) -> WebData (List a) -> WebData (List b)

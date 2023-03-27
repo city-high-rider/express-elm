@@ -4,9 +4,8 @@ import CheckoutInfo exposing (Info, infoDecoder)
 import Http
 import Json.Decode as Decode exposing (Decoder, int)
 import Json.Decode.Pipeline exposing (required)
-import Products exposing (Product)
+import Products exposing (Product, productDecoder)
 import RemoteData exposing (WebData)
-import Products exposing (productDecoder)
 
 
 type alias Order =
@@ -37,14 +36,13 @@ orderDecoder =
         |> required "bundles" bundlesDecoder
 
 
-bundlesDecoder : Decoder (List (Product, Int))
+bundlesDecoder : Decoder (List ( Product, Int ))
 bundlesDecoder =
     Decode.list bundleDecoder
 
 
-bundleDecoder : Decoder (Product, Int)
+bundleDecoder : Decoder ( Product, Int )
 bundleDecoder =
-    Decode.succeed (\p q -> (p,q))
+    Decode.succeed (\p q -> ( p, q ))
         |> required "product" productDecoder
         |> required "quantity" int
-
